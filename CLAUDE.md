@@ -432,7 +432,8 @@ Fix style: `./vendor/bin/pint`
 | 5 | Releases, deployments, rolling deploy, health checks, rollback | Pending |
 | 6 | Domains, certificates, Caddy config, backups, dashboard polish | Pending |
 
-See `.planning/architecture.md` for full details on each phase including tables, jobs, API endpoints, and UI screens.
+See `.planning/ROADMAP.md` for granular task tracking per phase.
+See `.planning/architecture.md` for full details on tables, schemas, state machines, API endpoints, and UI screens.
 
 ## Don'ts
 
