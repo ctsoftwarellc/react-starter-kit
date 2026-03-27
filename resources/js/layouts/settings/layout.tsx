@@ -22,6 +22,16 @@ const sidebarNavItems: NavItem[] = [
         icon: null,
     },
     {
+        title: 'SSH Keys',
+        href: '/settings/ssh-keys',
+        icon: null,
+    },
+    {
+        title: 'API Tokens',
+        href: '/settings/tokens',
+        icon: null,
+    },
+    {
         title: 'Appearance',
         href: editAppearance(),
         icon: null,

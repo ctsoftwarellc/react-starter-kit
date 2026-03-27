@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\SshKeySettingsController;
+use App\Http\Controllers\Settings\TokenSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth'])->group(function () {
@@ -21,4 +23,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+
+    Route::get('settings/ssh-keys', [SshKeySettingsController::class, 'index'])->name('ssh-keys.index');
+    Route::post('settings/ssh-keys', [SshKeySettingsController::class, 'store'])->name('ssh-keys.store');
+    Route::delete('settings/ssh-keys/{sshKey}', [SshKeySettingsController::class, 'destroy'])->name('ssh-keys.destroy');
+
+    Route::get('settings/tokens', [TokenSettingsController::class, 'index'])->name('tokens.index');
+    Route::post('settings/tokens', [TokenSettingsController::class, 'store'])->name('tokens.store');
+    Route::delete('settings/tokens/{personalAccessToken}', [TokenSettingsController::class, 'destroy'])->name('tokens.destroy');
 });

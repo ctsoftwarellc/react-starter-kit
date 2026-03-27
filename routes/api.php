@@ -1,24 +1,14 @@
 <?php
 
+use App\Http\Controllers\Api\AppPlatform\ProjectController;
+use App\Http\Controllers\Api\Operations\AuditLogController;
+use App\Http\Controllers\Api\PersonalAccessTokenController;
+use App\Http\Controllers\Api\SshKeyController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
-    // Phase 1: Auth & Projects
-    // Route::apiResource('projects', ...);
-    // Route::apiResource('ssh-keys', ...);
-    // Route::apiResource('tokens', ...);
-
-    // Phase 2: Infrastructure
-    // Route::apiResource('providers', ...);
-    // Route::apiResource('servers', ...);
-    // Route::apiResource('clusters', ...);
-
-    // Phase 3: Applications
-    // Route::apiResource('applications', ...);
-
-    // Phase 4: Pipelines
-    // Route::apiResource('pipelines', ...);
-
-    // Phase 5: Deployments
-    // Route::apiResource('deployments', ...);
+Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
+    Route::apiResource('tokens', PersonalAccessTokenController::class)->only(['index', 'store', 'destroy']);
+    Route::apiResource('ssh-keys', SshKeyController::class)->only(['index', 'store', 'destroy']);
+    Route::apiResource('projects', ProjectController::class);
+    Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
 });
