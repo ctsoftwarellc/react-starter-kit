@@ -435,6 +435,29 @@ Fix style: `./vendor/bin/pint`
 See `.planning/ROADMAP.md` for granular task tracking per phase.
 See `.planning/architecture.md` for full details on tables, schemas, state machines, API endpoints, and UI screens.
 
+## Build Pipeline
+
+To build a phase, run the master orchestrator:
+
+```
+/build-phase 1
+```
+
+This runs 6 stages sequentially via subagents:
+
+| Stage | Skill | What it does |
+|-------|-------|-------------|
+| 1 | `/pipeline-plan` | Reads architecture docs, produces a file-by-file implementation plan |
+| 2 | `/pipeline-backend` | Creates migrations, enums, models, actions, events, jobs, services, factories |
+| 3 | `/pipeline-frontend` | Creates controllers, form requests, resources, routes, Inertia pages |
+| 4 | `/pipeline-validate` | Checks all code against architecture spec, reports violations |
+| 5 | `/pipeline-test` | Writes unit tests, feature tests, contract tests, runs them |
+| 6 | `/pipeline-docs` | Updates ROADMAP.md checkboxes, CLAUDE.md phase status, cleans up |
+
+Each stage skill can also be invoked standalone: `/pipeline-backend 2` runs only the backend stage for Phase 2.
+
+Skills are defined in `.claude/skills/`.
+
 ## Don'ts
 
 - Don't put business logic in controllers, models, jobs, or listeners
