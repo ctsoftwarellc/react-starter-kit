@@ -60,6 +60,20 @@ return [
             'report' => false,
         ],
 
+        'artifacts' => [
+            'driver' => env('AWS_ENDPOINT') ? 's3' : 'local',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET', 'helm'),
+            'url' => env('AWS_URL'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'root' => storage_path('app/artifacts'),
+            'throw' => true,
+            'report' => true,
+        ],
+
     ],
 
     /*
