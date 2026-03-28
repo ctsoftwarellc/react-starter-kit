@@ -425,7 +425,7 @@ Fix style: `./vendor/bin/pint`
 | Phase | Focus | Status |
 |-------|-------|--------|
 | 0 | Foundation: PostgreSQL, Redis, S3, module structure, traits, config | **Done** |
-| 1 | Personal access tokens, SSH keys, projects, audit logs | Pending |
+| 1 | Personal access tokens, SSH keys, projects, audit logs | **Done** |
 | 2 | Providers, servers, clusters, SSH bootstrap, agent API | Pending |
 | 3 | Git connections, applications, environments, secrets, webhooks | Pending |
 | 4 | Pipelines, pipeline runs/jobs, runners, artifacts, log streaming | Pending |

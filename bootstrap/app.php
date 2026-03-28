@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateAgent;
 use App\Http\Middleware\AuthenticateWithToken;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -37,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'auth.token' => AuthenticateWithToken::class,
+            'auth.agent' => AuthenticateAgent::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

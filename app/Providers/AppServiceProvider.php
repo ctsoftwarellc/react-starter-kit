@@ -5,6 +5,15 @@ namespace App\Providers;
 use App\Modules\AppPlatform\Events\ProjectCreated;
 use App\Modules\AppPlatform\Events\ProjectDeleted;
 use App\Modules\AppPlatform\Events\ProjectUpdated;
+use App\Modules\Infrastructure\Events\ClusterTopologyChanged;
+use App\Modules\Infrastructure\Events\ProviderCreated;
+use App\Modules\Infrastructure\Events\ProviderDeleted;
+use App\Modules\Infrastructure\Events\ProviderUpdated;
+use App\Modules\Infrastructure\Events\ServerBootstrapped;
+use App\Modules\Infrastructure\Events\ServerHealthChanged;
+use App\Modules\Infrastructure\Events\ServerRegistered;
+use App\Modules\Infrastructure\Listeners\PushSshKeysOnBootstrap;
+use App\Modules\Infrastructure\Listeners\UpdateClusterStatus;
 use App\Modules\Operations\Listeners\RecordAuditLog;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -34,9 +43,24 @@ class AppServiceProvider extends ServiceProvider
 
     protected function registerEventListeners(): void
     {
+        // AppPlatform events
         Event::listen(ProjectCreated::class, [RecordAuditLog::class, 'handle']);
         Event::listen(ProjectUpdated::class, [RecordAuditLog::class, 'handle']);
         Event::listen(ProjectDeleted::class, [RecordAuditLog::class, 'handle']);
+
+        // Infrastructure events → Audit log
+        Event::listen(ProviderCreated::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(ProviderUpdated::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(ProviderDeleted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(ServerRegistered::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(ServerBootstrapped::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(ServerHealthChanged::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(ClusterTopologyChanged::class, [RecordAuditLog::class, 'handle']);
+
+        // Infrastructure events → Domain listeners
+        Event::listen(ServerBootstrapped::class, [UpdateClusterStatus::class, 'handle']);
+        Event::listen(ServerHealthChanged::class, [UpdateClusterStatus::class, 'handle']);
+        Event::listen(ServerBootstrapped::class, [PushSshKeysOnBootstrap::class, 'handle']);
     }
 
     /**

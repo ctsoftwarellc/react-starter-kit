@@ -32,80 +32,80 @@
 ---
 
 ## Phase 1: Auth, Projects, Audit Logs
-**Status: NOT STARTED**
+**Status: COMPLETE**
 
 ### 1.1 Personal Access Tokens
-- [ ] Migration: `create_personal_access_tokens_table` (ulid PK, user_id, name, token hash, abilities jsonb, last_used_at, expires_at)
-- [ ] Model: `app/Models/PersonalAccessToken.php` (stays at root, used by auth guard)
-- [ ] Action: `CreatePersonalAccessToken` (hash token, return plaintext once)
-- [ ] Action: `RevokePersonalAccessToken`
-- [ ] Middleware: `AuthenticateWithToken` (Bearer token lookup, set auth user)
-- [ ] Register middleware in `bootstrap/app.php` for API routes
-- [ ] Controller: `app/Http/Controllers/Api/PersonalAccessTokenController.php` (index, store, destroy)
-- [ ] FormRequest: `CreateTokenRequest`
-- [ ] Resource: `PersonalAccessTokenResource`
-- [ ] Factory: `PersonalAccessTokenFactory`
-- [ ] Feature test: token CRUD endpoints
-- [ ] Feature test: API auth via token
-- [ ] UI: tokens list page under settings
-- [ ] UI: create token modal (show plaintext once)
-- [ ] UI: revoke token button
+- [x] Migration: `create_personal_access_tokens_table` (ulid PK, user_id, name, token hash, abilities jsonb, last_used_at, expires_at)
+- [x] Model: `app/Models/PersonalAccessToken.php` (stays at root, used by auth guard)
+- [x] Action: `CreatePersonalAccessToken` (hash token, return plaintext once)
+- [x] Action: `RevokePersonalAccessToken`
+- [x] Middleware: `AuthenticateWithToken` (Bearer token lookup, set auth user)
+- [x] Register middleware in `bootstrap/app.php` for API routes
+- [x] Controller: `app/Http/Controllers/Api/PersonalAccessTokenController.php` (index, store, destroy)
+- [x] FormRequest: `CreateTokenRequest`
+- [x] Resource: `PersonalAccessTokenResource`
+- [x] Factory: `PersonalAccessTokenFactory`
+- [x] Feature test: token CRUD endpoints
+- [x] Feature test: API auth via token
+- [x] UI: tokens list page under settings
+- [x] UI: create token modal (show plaintext once)
+- [x] UI: revoke token button
 
 ### 1.2 SSH Keys
-- [ ] Migration: `create_ssh_keys_table` (ulid PK, user_id, name, public_key text, fingerprint unique)
-- [ ] Model: `app/Models/SshKey.php` (stays at root)
-- [ ] Action: `AddSshKey` (compute fingerprint from public key, validate format)
-- [ ] Action: `RemoveSshKey`
-- [ ] Controller: `app/Http/Controllers/Api/SshKeyController.php` (index, store, destroy)
-- [ ] FormRequest: `AddSshKeyRequest` (validate public key format)
-- [ ] Resource: `SshKeyResource`
-- [ ] Factory: `SshKeyFactory`
-- [ ] Feature test: SSH key CRUD
-- [ ] Feature test: duplicate fingerprint rejection
-- [ ] UI: SSH keys list page under settings
-- [ ] UI: add key form, delete button
+- [x] Migration: `create_ssh_keys_table` (ulid PK, user_id, name, public_key text, fingerprint unique)
+- [x] Model: `app/Models/SshKey.php` (stays at root)
+- [x] Action: `AddSshKey` (compute fingerprint from public key, validate format)
+- [x] Action: `RemoveSshKey`
+- [x] Controller: `app/Http/Controllers/Api/SshKeyController.php` (index, store, destroy)
+- [x] FormRequest: `AddSshKeyRequest` (validate public key format)
+- [x] Resource: `SshKeyResource`
+- [x] Factory: `SshKeyFactory`
+- [x] Feature test: SSH key CRUD
+- [x] Feature test: duplicate fingerprint rejection
+- [x] UI: SSH keys list page under settings
+- [x] UI: add key form, delete button
 
 ### 1.3 Projects
-- [ ] Migration: `create_projects_table` (ulid PK, name, slug unique, description nullable, timestamps, soft_deletes)
-- [ ] Model: `app/Modules/AppPlatform/Models/Project.php`
-- [ ] Action: `CreateProject` (generate slug from name)
-- [ ] Action: `UpdateProject`
-- [ ] Action: `DeleteProject` (soft delete)
-- [ ] Event: `ProjectCreated`
-- [ ] Controller: `app/Http/Controllers/Api/AppPlatform/ProjectController.php` (index, store, show, update, destroy)
-- [ ] FormRequest: `CreateProjectRequest`, `UpdateProjectRequest`
-- [ ] Resource: `ProjectResource`
-- [ ] Factory: `ProjectFactory`
-- [ ] Feature test: project CRUD
-- [ ] Feature test: slug uniqueness
-- [ ] UI: projects list page (cards with name, description, app count)
-- [ ] UI: create project modal
-- [ ] UI: project detail page (will hold apps later)
+- [x] Migration: `create_projects_table` (ulid PK, name, slug unique, description nullable, timestamps, soft_deletes)
+- [x] Model: `app/Modules/AppPlatform/Models/Project.php`
+- [x] Action: `CreateProject` (generate slug from name)
+- [x] Action: `UpdateProject`
+- [x] Action: `DeleteProject` (soft delete)
+- [x] Event: `ProjectCreated`
+- [x] Controller: `app/Http/Controllers/Api/AppPlatform/ProjectController.php` (index, store, show, update, destroy)
+- [x] FormRequest: `CreateProjectRequest`, `UpdateProjectRequest`
+- [x] Resource: `ProjectResource`
+- [x] Factory: `ProjectFactory`
+- [x] Feature test: project CRUD
+- [x] Feature test: slug uniqueness
+- [x] UI: projects list page (cards with name, description, app count)
+- [x] UI: create project modal
+- [x] UI: project detail page (will hold apps later)
 
 ### 1.4 Audit Logs
-- [ ] Migration: `create_audit_logs_table` (ulid PK, user_id nullable, action varchar, auditable_type, auditable_id, old_values jsonb, new_values jsonb, ip_address inet, user_agent text, created_at — NO updated_at)
-- [ ] Model: `app/Modules/Operations/Models/AuditLog.php` (no HasUlid timestamps override needed — only created_at)
-- [ ] Action: `RecordAuditLog`
-- [ ] Listener: `app/Modules/Operations/Listeners/RecordAuditLog.php` (listens to all domain events)
-- [ ] Register listener in `EventServiceProvider` or via event discovery
-- [ ] Controller: `app/Http/Controllers/Api/Operations/AuditLogController.php` (index only — read-only)
-- [ ] Resource: `AuditLogResource`
-- [ ] Feature test: audit log creation on events
-- [ ] Feature test: audit log list endpoint with filters
-- [ ] UI: activity feed page (chronological list, filterable)
+- [x] Migration: `create_audit_logs_table` (ulid PK, user_id nullable, action varchar, auditable_type, auditable_id, old_values jsonb, new_values jsonb, ip_address inet, user_agent text, created_at — NO updated_at)
+- [x] Model: `app/Modules/Operations/Models/AuditLog.php` (no HasUlid timestamps override needed — only created_at)
+- [x] Action: `RecordAuditLog`
+- [x] Listener: `app/Modules/Operations/Listeners/RecordAuditLog.php` (listens to all domain events)
+- [x] Register listener in `EventServiceProvider` or via event discovery
+- [x] Controller: `app/Http/Controllers/Api/Operations/AuditLogController.php` (index only — read-only)
+- [x] Resource: `AuditLogResource`
+- [x] Feature test: audit log creation on events
+- [x] Feature test: audit log list endpoint with filters
+- [x] UI: activity feed page (chronological list, filterable)
 
 ### 1.5 Sidebar Navigation + Dashboard
-- [ ] Update Inertia layout with sidebar navigation matching architecture (Dashboard, Servers, Clusters, Projects, Runners, Activity, Settings)
-- [ ] Dashboard page: placeholder cards for servers, apps, recent deploys, recent pipelines
-- [ ] Settings layout with sub-nav: Profile, SSH Keys, API Tokens
-- [ ] Wire up existing profile/security settings pages into new layout
-- [ ] Move provider settings into Settings section (placeholder for Phase 2)
+- [x] Update Inertia layout with sidebar navigation matching architecture (Dashboard, Servers, Clusters, Projects, Runners, Activity, Settings)
+- [x] Dashboard page: placeholder cards for servers, apps, recent deploys, recent pipelines
+- [x] Settings layout with sub-nav: Profile, SSH Keys, API Tokens
+- [x] Wire up existing profile/security settings pages into new layout
+- [x] Move provider settings into Settings section (placeholder for Phase 2)
 
 ### 1.6 Phase 1 Completion
-- [ ] All new tests passing
-- [ ] Pint passing
-- [ ] Update CLAUDE.md phase table to mark Phase 1 complete
-- [ ] Update this roadmap
+- [x] All new tests passing
+- [x] Pint passing
+- [x] Update CLAUDE.md phase table to mark Phase 1 complete
+- [x] Update this roadmap
 
 ---
 

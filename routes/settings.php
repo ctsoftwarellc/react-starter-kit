@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\ProviderSettingsController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\SshKeySettingsController;
 use App\Http\Controllers\Settings\TokenSettingsController;
@@ -31,4 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('settings/tokens', [TokenSettingsController::class, 'index'])->name('tokens.index');
     Route::post('settings/tokens', [TokenSettingsController::class, 'store'])->name('tokens.store');
     Route::delete('settings/tokens/{personalAccessToken}', [TokenSettingsController::class, 'destroy'])->name('tokens.destroy');
+
+    Route::get('settings/providers', [ProviderSettingsController::class, 'index'])->name('providers.index');
+    Route::post('settings/providers', [ProviderSettingsController::class, 'store'])->name('providers.store');
+    Route::put('settings/providers/{provider}', [ProviderSettingsController::class, 'update'])->name('providers.update');
+    Route::delete('settings/providers/{provider}', [ProviderSettingsController::class, 'destroy'])->name('providers.destroy');
+    Route::post('settings/providers/{provider}/test', [ProviderSettingsController::class, 'test'])->name('providers.test');
 });

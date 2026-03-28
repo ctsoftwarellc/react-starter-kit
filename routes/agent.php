@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Agent\AgentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -12,9 +13,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('api/agent')->middleware('throttle:120,1')->group(function () {
-    // POST   /api/agent/heartbeat
-    // GET    /api/agent/commands/pending
-    // POST   /api/agent/commands/{id}/result
-    // POST   /api/agent/commands/{id}/log
+Route::prefix('api/agent')->middleware(['throttle:120,1', 'auth.agent'])->group(function () {
+    Route::post('heartbeat', [AgentController::class, 'heartbeat'])->name('agent.heartbeat');
+    Route::get('commands/pending', [AgentController::class, 'pendingCommands'])->name('agent.commands.pending');
+    Route::post('commands/{agentCommand}/result', [AgentController::class, 'reportResult'])->name('agent.commands.result');
 });
