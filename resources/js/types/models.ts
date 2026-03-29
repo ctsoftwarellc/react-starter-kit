@@ -160,6 +160,58 @@ export type Environment = {
     variables?: EnvironmentVariable[];
     secrets?: Secret[];
     process_definitions?: ProcessDefinition[];
+    service_bindings?: ServiceBinding[];
+    created_at: string;
+    updated_at: string;
+};
+
+export type DatabaseInstance = {
+    id: string;
+    cluster_id: string;
+    name: string;
+    engine: 'postgres' | 'mysql';
+    version: string | null;
+    host: string;
+    port: number;
+    database_name: string;
+    username: string;
+    cluster?: Cluster;
+    created_at: string;
+    updated_at: string;
+};
+
+export type CacheInstance = {
+    id: string;
+    cluster_id: string;
+    name: string;
+    engine: 'redis' | 'valkey';
+    version: string | null;
+    host: string;
+    port: number;
+    cluster?: Cluster;
+    created_at: string;
+    updated_at: string;
+};
+
+export type StorageBucket = {
+    id: string;
+    name: string;
+    provider: string;
+    region: string;
+    bucket_name: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ServiceBinding = {
+    id: string;
+    environment_id: string;
+    service_type: 'database' | 'cache' | 'storage';
+    binding_name: string;
+    config: Record<string, unknown>;
+    database_instance?: DatabaseInstance | null;
+    cache_instance?: CacheInstance | null;
+    storage_bucket?: StorageBucket | null;
     created_at: string;
     updated_at: string;
 };

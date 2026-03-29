@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\EnvironmentWebController;
 use App\Http\Controllers\Web\GitConnectionWebController;
 use App\Http\Controllers\Web\ProjectWebController;
 use App\Http\Controllers\Web\ServerWebController;
+use App\Http\Controllers\Web\ServiceManagementWebController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -42,6 +43,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('environments/{environment}/processes', [EnvironmentWebController::class, 'storeProcess'])->name('environment-processes.store');
         Route::put('environments/{environment}/processes/{processDefinition}', [EnvironmentWebController::class, 'updateProcess'])->name('environment-processes.update');
         Route::delete('environments/{environment}/processes/{processDefinition}', [EnvironmentWebController::class, 'destroyProcess'])->name('environment-processes.destroy');
+        Route::post('service-management/databases', [ServiceManagementWebController::class, 'storeDatabase'])->name('service-management.databases.store');
+        Route::delete('service-management/databases/{databaseInstance}', [ServiceManagementWebController::class, 'destroyDatabase'])->name('service-management.databases.destroy');
+        Route::post('service-management/databases/{databaseInstance}/rotate-credentials', [ServiceManagementWebController::class, 'rotateDatabase'])->name('service-management.databases.rotate');
+        Route::post('service-management/caches', [ServiceManagementWebController::class, 'storeCache'])->name('service-management.caches.store');
+        Route::delete('service-management/caches/{cacheInstance}', [ServiceManagementWebController::class, 'destroyCache'])->name('service-management.caches.destroy');
+        Route::post('service-management/caches/{cacheInstance}/rotate-credentials', [ServiceManagementWebController::class, 'rotateCache'])->name('service-management.caches.rotate');
+        Route::post('service-management/storage-buckets', [ServiceManagementWebController::class, 'storeStorageBucket'])->name('service-management.storage-buckets.store');
+        Route::delete('service-management/storage-buckets/{storageBucket}', [ServiceManagementWebController::class, 'destroyStorageBucket'])->name('service-management.storage-buckets.destroy');
+        Route::post('service-management/storage-buckets/{storageBucket}/rotate-credentials', [ServiceManagementWebController::class, 'rotateStorageBucket'])->name('service-management.storage-buckets.rotate');
+        Route::post('environments/{environment}/service-bindings', [ServiceManagementWebController::class, 'storeBinding'])->name('environment-service-bindings.store');
+        Route::delete('environments/{environment}/service-bindings/{serviceBinding}', [ServiceManagementWebController::class, 'destroyBinding'])->name('environment-service-bindings.destroy');
     });
 
     Route::resource('servers', ServerWebController::class)->only(['index', 'create', 'store', 'show']);

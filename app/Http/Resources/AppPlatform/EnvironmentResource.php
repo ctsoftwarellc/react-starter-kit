@@ -3,6 +3,7 @@
 namespace App\Http\Resources\AppPlatform;
 
 use App\Http\Resources\Infrastructure\ClusterResource;
+use App\Http\Resources\ServiceManagement\ServiceBindingResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,6 +24,7 @@ class EnvironmentResource extends JsonResource
             'variables' => EnvironmentVariableResource::collection($this->whenLoaded('variables')),
             'secrets' => SecretResource::collection($this->whenLoaded('secrets')),
             'process_definitions' => ProcessDefinitionResource::collection($this->whenLoaded('processDefinitions')),
+            'service_bindings' => ServiceBindingResource::collection($this->whenLoaded('serviceBindings')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

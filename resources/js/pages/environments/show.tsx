@@ -1,5 +1,5 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye, Pencil, RefreshCw, Trash2, Unplug } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -17,11 +17,15 @@ import {
 } from '@/components/ui/select';
 import type {
     Application,
+    CacheInstance,
     Cluster,
+    DatabaseInstance,
     Environment,
     EnvironmentVariable,
     ProcessDefinition,
     Secret,
+    ServiceBinding,
+    StorageBucket,
 } from '@/types';
 
 type Props = {
@@ -33,6 +37,10 @@ type Props = {
     };
     application: Application;
     clusters: Cluster[];
+    databaseInstances: DatabaseInstance[];
+    cacheInstances: CacheInstance[];
+    storageBuckets: StorageBucket[];
+    serviceBindings: ServiceBinding[];
 };
 
 async function revealSecret(
@@ -59,10 +67,26 @@ async function revealSecret(
     return payload.value;
 }
 
+function bindingServiceName(binding: ServiceBinding): string {
+    if (binding.service_type === 'database') {
+        return binding.database_instance?.name ?? 'Unknown database';
+    }
+
+    if (binding.service_type === 'cache') {
+        return binding.cache_instance?.name ?? 'Unknown cache';
+    }
+
+    return binding.storage_bucket?.name ?? 'Unknown bucket';
+}
+
 export default function EnvironmentShow({
     environment,
     application,
     clusters,
+    databaseInstances,
+    cacheInstances,
+    storageBuckets,
+    serviceBindings,
 }: Props) {
     const [editingVariableId, setEditingVariableId] = useState<string | null>(
         null,
@@ -99,6 +123,45 @@ export default function EnvironmentShow({
         type: 'web',
         command: '',
         instances: '1',
+    });
+
+    const databaseForm = useForm({
+        cluster_id: environment.cluster_id,
+        name: '',
+        engine: 'postgres',
+        version: '',
+    });
+
+    const cacheForm = useForm({
+        cluster_id: environment.cluster_id,
+        name: '',
+        engine: 'redis',
+        version: '',
+    });
+
+    const storageForm = useForm({
+        name: '',
+        provider: 's3',
+        region: 'us-east-1',
+        bucket_name: '',
+    });
+
+    const bindDatabaseForm = useForm({
+        service_type: 'database',
+        binding_name: 'DB',
+        database_instance_id: '',
+    });
+
+    const bindCacheForm = useForm({
+        service_type: 'cache',
+        binding_name: 'CACHE',
+        cache_instance_id: '',
+    });
+
+    const bindStorageForm = useForm({
+        service_type: 'storage',
+        binding_name: 'STORAGE',
+        storage_bucket_id: '',
     });
 
     const variables = useMemo(
@@ -178,10 +241,7 @@ export default function EnvironmentShow({
 
     function startEditSecret(secret: Secret) {
         setEditingSecretId(secret.id);
-        secretForm.setData({
-            key: secret.key,
-            value: '',
-        });
+        secretForm.setData({ key: secret.key, value: '' });
     }
 
     function deleteSecret(secret: Secret) {
@@ -242,6 +302,90 @@ export default function EnvironmentShow({
 
     function deleteEnvironment() {
         router.delete(`/environments/${environment.id}`);
+    }
+
+    function submitDatabase(event: React.FormEvent) {
+        event.preventDefault();
+        databaseForm.post('/service-management/databases', {
+            onSuccess: () => databaseForm.reset('name', 'version'),
+        });
+    }
+
+    function submitCache(event: React.FormEvent) {
+        event.preventDefault();
+        cacheForm.post('/service-management/caches', {
+            onSuccess: () => cacheForm.reset('name', 'version'),
+        });
+    }
+
+    function submitStorage(event: React.FormEvent) {
+        event.preventDefault();
+        storageForm.post('/service-management/storage-buckets', {
+            onSuccess: () => storageForm.reset('name', 'bucket_name'),
+        });
+    }
+
+    function bindDatabase(event: React.FormEvent) {
+        event.preventDefault();
+        bindDatabaseForm.post(
+            `/environments/${environment.id}/service-bindings`,
+            {
+                onSuccess: () => bindDatabaseForm.reset('database_instance_id'),
+            },
+        );
+    }
+
+    function bindCache(event: React.FormEvent) {
+        event.preventDefault();
+        bindCacheForm.post(`/environments/${environment.id}/service-bindings`, {
+            onSuccess: () => bindCacheForm.reset('cache_instance_id'),
+        });
+    }
+
+    function bindStorage(event: React.FormEvent) {
+        event.preventDefault();
+        bindStorageForm.post(
+            `/environments/${environment.id}/service-bindings`,
+            {
+                onSuccess: () => bindStorageForm.reset('storage_bucket_id'),
+            },
+        );
+    }
+
+    function unbindService(binding: ServiceBinding) {
+        router.delete(
+            `/environments/${environment.id}/service-bindings/${binding.id}`,
+        );
+    }
+
+    function rotateDatabase(instance: DatabaseInstance) {
+        router.post(
+            `/service-management/databases/${instance.id}/rotate-credentials`,
+        );
+    }
+
+    function rotateCache(instance: CacheInstance) {
+        router.post(
+            `/service-management/caches/${instance.id}/rotate-credentials`,
+        );
+    }
+
+    function rotateStorage(bucket: StorageBucket) {
+        router.post(
+            `/service-management/storage-buckets/${bucket.id}/rotate-credentials`,
+        );
+    }
+
+    function deleteDatabase(instance: DatabaseInstance) {
+        router.delete(`/service-management/databases/${instance.id}`);
+    }
+
+    function deleteCache(instance: CacheInstance) {
+        router.delete(`/service-management/caches/${instance.id}`);
+    }
+
+    function deleteStorage(bucket: StorageBucket) {
+        router.delete(`/service-management/storage-buckets/${bucket.id}`);
     }
 
     return (
@@ -419,6 +563,86 @@ export default function EnvironmentShow({
 
                         <Card>
                             <CardHeader>
+                                <CardTitle>Bound Services</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="rounded-lg border">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b bg-muted/50">
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Binding
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Type
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Service
+                                                </th>
+                                                <th className="px-4 py-2 text-right font-medium">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {serviceBindings.length > 0 ? (
+                                                serviceBindings.map(
+                                                    (binding) => (
+                                                        <tr
+                                                            key={binding.id}
+                                                            className="border-b last:border-0"
+                                                        >
+                                                            <td className="px-4 py-2 font-mono text-xs">
+                                                                {
+                                                                    binding.binding_name
+                                                                }
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                <Badge variant="outline">
+                                                                    {
+                                                                        binding.service_type
+                                                                    }
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                {bindingServiceName(
+                                                                    binding,
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        unbindService(
+                                                                            binding,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Unplug className="h-4 w-4" />
+                                                                </Button>
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        className="px-4 py-6 text-muted-foreground"
+                                                        colSpan={4}
+                                                    >
+                                                        No services bound yet.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
                                 <CardTitle>Environment Variables</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -557,9 +781,7 @@ export default function EnvironmentShow({
                                 </div>
                             </CardContent>
                         </Card>
-                    </div>
 
-                    <div className="space-y-6">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Secrets</CardTitle>
@@ -923,6 +1145,842 @@ export default function EnvironmentShow({
                                                     >
                                                         No process definitions
                                                         yet.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Managed Databases</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <form
+                                    onSubmit={submitDatabase}
+                                    className="grid gap-4 md:grid-cols-2"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="database-name">
+                                            Name
+                                        </Label>
+                                        <Input
+                                            id="database-name"
+                                            value={databaseForm.data.name}
+                                            onChange={(event) =>
+                                                databaseForm.setData(
+                                                    'name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={databaseForm.errors.name}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="database-cluster">
+                                            Cluster
+                                        </Label>
+                                        <Select
+                                            value={databaseForm.data.cluster_id}
+                                            onValueChange={(value) =>
+                                                databaseForm.setData(
+                                                    'cluster_id',
+                                                    value,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select cluster" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {clusters.map((cluster) => (
+                                                    <SelectItem
+                                                        key={cluster.id}
+                                                        value={cluster.id}
+                                                    >
+                                                        {cluster.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={
+                                                databaseForm.errors.cluster_id
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="database-engine">
+                                            Engine
+                                        </Label>
+                                        <Select
+                                            value={databaseForm.data.engine}
+                                            onValueChange={(value) =>
+                                                databaseForm.setData(
+                                                    'engine',
+                                                    value as
+                                                        | 'postgres'
+                                                        | 'mysql',
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Engine" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="postgres">
+                                                    Postgres
+                                                </SelectItem>
+                                                <SelectItem value="mysql">
+                                                    MySQL
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="database-version">
+                                            Version
+                                        </Label>
+                                        <Input
+                                            id="database-version"
+                                            value={databaseForm.data.version}
+                                            onChange={(event) =>
+                                                databaseForm.setData(
+                                                    'version',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="16"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3 md:col-span-2">
+                                        <Button
+                                            disabled={databaseForm.processing}
+                                        >
+                                            Provision Database
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <form
+                                    onSubmit={bindDatabase}
+                                    className="grid gap-4 rounded-lg border p-4"
+                                >
+                                    <p className="font-medium">
+                                        Bind Existing Database
+                                    </p>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="bind-database">
+                                                Database
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    bindDatabaseForm.data
+                                                        .database_instance_id
+                                                }
+                                                onValueChange={(value) =>
+                                                    bindDatabaseForm.setData(
+                                                        'database_instance_id',
+                                                        value,
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select database" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {databaseInstances.map(
+                                                        (instance) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    instance.id
+                                                                }
+                                                                value={
+                                                                    instance.id
+                                                                }
+                                                            >
+                                                                {instance.name}{' '}
+                                                                (
+                                                                {
+                                                                    instance.engine
+                                                                }
+                                                                )
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError
+                                                message={
+                                                    bindDatabaseForm.errors
+                                                        .database_instance_id
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="database-binding-name">
+                                                Binding Name
+                                            </Label>
+                                            <Input
+                                                id="database-binding-name"
+                                                value={
+                                                    bindDatabaseForm.data
+                                                        .binding_name
+                                                }
+                                                onChange={(event) =>
+                                                    bindDatabaseForm.setData(
+                                                        'binding_name',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <InputError
+                                                message={
+                                                    bindDatabaseForm.errors
+                                                        .binding_name
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Button
+                                            disabled={
+                                                bindDatabaseForm.processing
+                                            }
+                                        >
+                                            Bind Database
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <div className="rounded-lg border">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b bg-muted/50">
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Name
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Engine
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Cluster
+                                                </th>
+                                                <th className="px-4 py-2 text-right font-medium">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {databaseInstances.length > 0 ? (
+                                                databaseInstances.map(
+                                                    (instance) => (
+                                                        <tr
+                                                            key={instance.id}
+                                                            className="border-b last:border-0"
+                                                        >
+                                                            <td className="px-4 py-2">
+                                                                {instance.name}
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                {
+                                                                    instance.engine
+                                                                }
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                {instance
+                                                                    .cluster
+                                                                    ?.name ??
+                                                                    '-'}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right">
+                                                                <div className="flex justify-end gap-1">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            rotateDatabase(
+                                                                                instance,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <RefreshCw className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            deleteDatabase(
+                                                                                instance,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        className="px-4 py-6 text-muted-foreground"
+                                                        colSpan={4}
+                                                    >
+                                                        No databases
+                                                        provisioned.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Managed Caches</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <form
+                                    onSubmit={submitCache}
+                                    className="grid gap-4 md:grid-cols-2"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="cache-name">Name</Label>
+                                        <Input
+                                            id="cache-name"
+                                            value={cacheForm.data.name}
+                                            onChange={(event) =>
+                                                cacheForm.setData(
+                                                    'name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={cacheForm.errors.name}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="cache-cluster">
+                                            Cluster
+                                        </Label>
+                                        <Select
+                                            value={cacheForm.data.cluster_id}
+                                            onValueChange={(value) =>
+                                                cacheForm.setData(
+                                                    'cluster_id',
+                                                    value,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select cluster" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {clusters.map((cluster) => (
+                                                    <SelectItem
+                                                        key={cluster.id}
+                                                        value={cluster.id}
+                                                    >
+                                                        {cluster.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={
+                                                cacheForm.errors.cluster_id
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="cache-engine">
+                                            Engine
+                                        </Label>
+                                        <Select
+                                            value={cacheForm.data.engine}
+                                            onValueChange={(value) =>
+                                                cacheForm.setData(
+                                                    'engine',
+                                                    value as 'redis' | 'valkey',
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Engine" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="redis">
+                                                    Redis
+                                                </SelectItem>
+                                                <SelectItem value="valkey">
+                                                    Valkey
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="cache-version">
+                                            Version
+                                        </Label>
+                                        <Input
+                                            id="cache-version"
+                                            value={cacheForm.data.version}
+                                            onChange={(event) =>
+                                                cacheForm.setData(
+                                                    'version',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="7"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3 md:col-span-2">
+                                        <Button disabled={cacheForm.processing}>
+                                            Provision Cache
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <form
+                                    onSubmit={bindCache}
+                                    className="grid gap-4 rounded-lg border p-4"
+                                >
+                                    <p className="font-medium">
+                                        Bind Existing Cache
+                                    </p>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="bind-cache">
+                                                Cache
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    bindCacheForm.data
+                                                        .cache_instance_id
+                                                }
+                                                onValueChange={(value) =>
+                                                    bindCacheForm.setData(
+                                                        'cache_instance_id',
+                                                        value,
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select cache" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {cacheInstances.map(
+                                                        (instance) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    instance.id
+                                                                }
+                                                                value={
+                                                                    instance.id
+                                                                }
+                                                            >
+                                                                {instance.name}{' '}
+                                                                (
+                                                                {
+                                                                    instance.engine
+                                                                }
+                                                                )
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError
+                                                message={
+                                                    bindCacheForm.errors
+                                                        .cache_instance_id
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="cache-binding-name">
+                                                Binding Name
+                                            </Label>
+                                            <Input
+                                                id="cache-binding-name"
+                                                value={
+                                                    bindCacheForm.data
+                                                        .binding_name
+                                                }
+                                                onChange={(event) =>
+                                                    bindCacheForm.setData(
+                                                        'binding_name',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <InputError
+                                                message={
+                                                    bindCacheForm.errors
+                                                        .binding_name
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Button
+                                            disabled={bindCacheForm.processing}
+                                        >
+                                            Bind Cache
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <div className="rounded-lg border">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b bg-muted/50">
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Name
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Engine
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Cluster
+                                                </th>
+                                                <th className="px-4 py-2 text-right font-medium">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {cacheInstances.length > 0 ? (
+                                                cacheInstances.map(
+                                                    (instance) => (
+                                                        <tr
+                                                            key={instance.id}
+                                                            className="border-b last:border-0"
+                                                        >
+                                                            <td className="px-4 py-2">
+                                                                {instance.name}
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                {
+                                                                    instance.engine
+                                                                }
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                {instance
+                                                                    .cluster
+                                                                    ?.name ??
+                                                                    '-'}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-right">
+                                                                <div className="flex justify-end gap-1">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            rotateCache(
+                                                                                instance,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <RefreshCw className="h-4 w-4" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() =>
+                                                                            deleteCache(
+                                                                                instance,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        className="px-4 py-6 text-muted-foreground"
+                                                        colSpan={4}
+                                                    >
+                                                        No caches provisioned.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Storage Buckets</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <form
+                                    onSubmit={submitStorage}
+                                    className="grid gap-4 md:grid-cols-2"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="bucket-name">
+                                            Name
+                                        </Label>
+                                        <Input
+                                            id="bucket-name"
+                                            value={storageForm.data.name}
+                                            onChange={(event) =>
+                                                storageForm.setData(
+                                                    'name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={storageForm.errors.name}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="bucket-provider">
+                                            Provider
+                                        </Label>
+                                        <Input
+                                            id="bucket-provider"
+                                            value={storageForm.data.provider}
+                                            onChange={(event) =>
+                                                storageForm.setData(
+                                                    'provider',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                storageForm.errors.provider
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="bucket-region">
+                                            Region
+                                        </Label>
+                                        <Input
+                                            id="bucket-region"
+                                            value={storageForm.data.region}
+                                            onChange={(event) =>
+                                                storageForm.setData(
+                                                    'region',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={storageForm.errors.region}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="bucket-bucket-name">
+                                            Bucket Name
+                                        </Label>
+                                        <Input
+                                            id="bucket-bucket-name"
+                                            value={storageForm.data.bucket_name}
+                                            onChange={(event) =>
+                                                storageForm.setData(
+                                                    'bucket_name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                storageForm.errors.bucket_name
+                                            }
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3 md:col-span-2">
+                                        <Button
+                                            disabled={storageForm.processing}
+                                        >
+                                            Provision Bucket
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <form
+                                    onSubmit={bindStorage}
+                                    className="grid gap-4 rounded-lg border p-4"
+                                >
+                                    <p className="font-medium">
+                                        Bind Existing Bucket
+                                    </p>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="bind-storage">
+                                                Bucket
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    bindStorageForm.data
+                                                        .storage_bucket_id
+                                                }
+                                                onValueChange={(value) =>
+                                                    bindStorageForm.setData(
+                                                        'storage_bucket_id',
+                                                        value,
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select bucket" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {storageBuckets.map(
+                                                        (bucket) => (
+                                                            <SelectItem
+                                                                key={bucket.id}
+                                                                value={
+                                                                    bucket.id
+                                                                }
+                                                            >
+                                                                {bucket.name} (
+                                                                {
+                                                                    bucket.provider
+                                                                }
+                                                                )
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError
+                                                message={
+                                                    bindStorageForm.errors
+                                                        .storage_bucket_id
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="storage-binding-name">
+                                                Binding Name
+                                            </Label>
+                                            <Input
+                                                id="storage-binding-name"
+                                                value={
+                                                    bindStorageForm.data
+                                                        .binding_name
+                                                }
+                                                onChange={(event) =>
+                                                    bindStorageForm.setData(
+                                                        'binding_name',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                            <InputError
+                                                message={
+                                                    bindStorageForm.errors
+                                                        .binding_name
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Button
+                                            disabled={
+                                                bindStorageForm.processing
+                                            }
+                                        >
+                                            Bind Bucket
+                                        </Button>
+                                    </div>
+                                </form>
+
+                                <div className="rounded-lg border">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b bg-muted/50">
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Name
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Provider
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Region
+                                                </th>
+                                                <th className="px-4 py-2 text-right font-medium">
+                                                    Actions
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {storageBuckets.length > 0 ? (
+                                                storageBuckets.map((bucket) => (
+                                                    <tr
+                                                        key={bucket.id}
+                                                        className="border-b last:border-0"
+                                                    >
+                                                        <td className="px-4 py-2">
+                                                            {bucket.name}
+                                                        </td>
+                                                        <td className="px-4 py-2">
+                                                            {bucket.provider}
+                                                        </td>
+                                                        <td className="px-4 py-2">
+                                                            {bucket.region}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right">
+                                                            <div className="flex justify-end gap-1">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        rotateStorage(
+                                                                            bucket,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <RefreshCw className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        deleteStorage(
+                                                                            bucket,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        className="px-4 py-6 text-muted-foreground"
+                                                        colSpan={4}
+                                                    >
+                                                        No buckets provisioned.
                                                     </td>
                                                 </tr>
                                             )}

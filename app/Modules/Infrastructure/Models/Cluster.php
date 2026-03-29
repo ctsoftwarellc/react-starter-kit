@@ -4,6 +4,8 @@ namespace App\Modules\Infrastructure\Models;
 
 use App\Modules\AppPlatform\Models\Environment;
 use App\Modules\Infrastructure\Enums\ClusterStatus;
+use App\Modules\ServiceManagement\Models\CacheInstance;
+use App\Modules\ServiceManagement\Models\DatabaseInstance;
 use App\Support\Concerns\HasStateMachine;
 use App\Support\Concerns\HasUlid;
 use Database\Factories\ClusterFactory;
@@ -41,6 +43,16 @@ class Cluster extends Model
     public function environments(): HasMany
     {
         return $this->hasMany(Environment::class);
+    }
+
+    public function databaseInstances(): HasMany
+    {
+        return $this->hasMany(DatabaseInstance::class);
+    }
+
+    public function cacheInstances(): HasMany
+    {
+        return $this->hasMany(CacheInstance::class);
     }
 
     protected function getStatusEnum(): string

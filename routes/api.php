@@ -12,6 +12,10 @@ use App\Http\Controllers\Api\Infrastructure\ProviderController;
 use App\Http\Controllers\Api\Infrastructure\ServerController;
 use App\Http\Controllers\Api\Operations\AuditLogController;
 use App\Http\Controllers\Api\PersonalAccessTokenController;
+use App\Http\Controllers\Api\ServiceManagement\CacheInstanceController;
+use App\Http\Controllers\Api\ServiceManagement\DatabaseInstanceController;
+use App\Http\Controllers\Api\ServiceManagement\ServiceBindingController;
+use App\Http\Controllers\Api\ServiceManagement\StorageBucketController;
 use App\Http\Controllers\Api\SshKeyController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +25,21 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
     Route::apiResource('projects', ProjectController::class);
     Route::get('git-connections', [GitConnectionController::class, 'index'])->name('git-connections.index');
     Route::delete('git-connections/{gitConnection}', [GitConnectionController::class, 'destroy'])->name('git-connections.destroy');
+    Route::get('database-instances', [DatabaseInstanceController::class, 'index'])->name('database-instances.index');
+    Route::post('database-instances', [DatabaseInstanceController::class, 'store'])->name('database-instances.store');
+    Route::get('database-instances/{databaseInstance}', [DatabaseInstanceController::class, 'show'])->name('database-instances.show');
+    Route::delete('database-instances/{databaseInstance}', [DatabaseInstanceController::class, 'destroy'])->name('database-instances.destroy');
+    Route::post('database-instances/{databaseInstance}/rotate-credentials', [DatabaseInstanceController::class, 'rotateCredentials'])->name('database-instances.rotate-credentials');
+    Route::get('cache-instances', [CacheInstanceController::class, 'index'])->name('cache-instances.index');
+    Route::post('cache-instances', [CacheInstanceController::class, 'store'])->name('cache-instances.store');
+    Route::get('cache-instances/{cacheInstance}', [CacheInstanceController::class, 'show'])->name('cache-instances.show');
+    Route::delete('cache-instances/{cacheInstance}', [CacheInstanceController::class, 'destroy'])->name('cache-instances.destroy');
+    Route::post('cache-instances/{cacheInstance}/rotate-credentials', [CacheInstanceController::class, 'rotateCredentials'])->name('cache-instances.rotate-credentials');
+    Route::get('storage-buckets', [StorageBucketController::class, 'index'])->name('storage-buckets.index');
+    Route::post('storage-buckets', [StorageBucketController::class, 'store'])->name('storage-buckets.store');
+    Route::get('storage-buckets/{storageBucket}', [StorageBucketController::class, 'show'])->name('storage-buckets.show');
+    Route::delete('storage-buckets/{storageBucket}', [StorageBucketController::class, 'destroy'])->name('storage-buckets.destroy');
+    Route::post('storage-buckets/{storageBucket}/rotate-credentials', [StorageBucketController::class, 'rotateCredentials'])->name('storage-buckets.rotate-credentials');
 
     Route::scopeBindings()->group(function () {
         Route::get('projects/{project}/applications', [ApplicationController::class, 'index'])->name('applications.index');
@@ -46,6 +65,9 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
         Route::post('environments/{environment}/processes', [ProcessDefinitionController::class, 'store'])->name('processes.store');
         Route::put('environments/{environment}/processes/{processDefinition}', [ProcessDefinitionController::class, 'update'])->name('processes.update');
         Route::delete('environments/{environment}/processes/{processDefinition}', [ProcessDefinitionController::class, 'destroy'])->name('processes.destroy');
+        Route::get('environments/{environment}/service-bindings', [ServiceBindingController::class, 'index'])->name('service-bindings.index');
+        Route::post('environments/{environment}/service-bindings', [ServiceBindingController::class, 'store'])->name('service-bindings.store');
+        Route::delete('environments/{environment}/service-bindings/{serviceBinding}', [ServiceBindingController::class, 'destroy'])->name('service-bindings.destroy');
     });
 
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

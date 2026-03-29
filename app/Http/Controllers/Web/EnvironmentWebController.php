@@ -33,6 +33,9 @@ use App\Modules\AppPlatform\Models\EnvironmentVariable;
 use App\Modules\AppPlatform\Models\ProcessDefinition;
 use App\Modules\AppPlatform\Models\Secret;
 use App\Modules\Infrastructure\Models\Cluster;
+use App\Modules\ServiceManagement\Models\CacheInstance;
+use App\Modules\ServiceManagement\Models\DatabaseInstance;
+use App\Modules\ServiceManagement\Models\StorageBucket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -58,6 +61,10 @@ class EnvironmentWebController extends Controller
             'environment' => $environment,
             'application' => $environment->application,
             'clusters' => Cluster::latest()->get(),
+            'databaseInstances' => DatabaseInstance::with('cluster')->latest()->get(),
+            'cacheInstances' => CacheInstance::with('cluster')->latest()->get(),
+            'storageBuckets' => StorageBucket::latest()->get(),
+            'serviceBindings' => $environment->serviceBindings()->with(['databaseInstance.cluster', 'cacheInstance.cluster', 'storageBucket'])->latest()->get(),
         ]);
     }
 

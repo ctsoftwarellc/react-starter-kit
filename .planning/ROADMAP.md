@@ -265,27 +265,27 @@
 
 ### 3.7 Service Bindings + Managed Services
 
-- [ ] Migration: `create_database_instances_table`
-- [ ] Migration: `create_cache_instances_table`
-- [ ] Migration: `create_service_bindings_table`
-- [ ] Model: `DatabaseInstance.php`, `CacheInstance.php`, `ServiceBinding.php`
-- [ ] Enum: `DatabaseEngine` (`postgres`, `mysql`)
-- [ ] Enum: `CacheEngine` (`redis`, `valkey`)
-- [ ] Action: `ProvisionDatabase`, `DeleteDatabase`, `RotateDatabaseCredentials`
-- [ ] Action: `ProvisionCache`, `DeleteCache`, `RotateCacheCredentials`
-- [ ] Action: `BindServiceToEnvironment`, `UnbindServiceFromEnvironment`
-- [ ] Service: `DatabaseProvisioner` interface with `PostgresProvisioner` and `MysqlProvisioner`
-- [ ] Service: `CacheProvisioner` interface with `RedisProvisioner`
-- [ ] Support db-role nodes for dedicated database servers
-- [ ] Support cache-role nodes for dedicated cache servers
-- [ ] Migration: `create_storage_buckets_table` (ulid PK, name, provider varchar, region varchar, access_key encrypted, secret_key encrypted, bucket_name, timestamps)
-- [ ] Model: `StorageBucket.php`
-- [ ] Action: `ProvisionStorageBucket`, `DeleteStorageBucket`, `RotateStorageCredentials`
+- [x] Migration: `create_database_instances_table`
+- [x] Migration: `create_cache_instances_table`
+- [x] Migration: `create_service_bindings_table`
+- [x] Model: `DatabaseInstance.php`, `CacheInstance.php`, `ServiceBinding.php`
+- [x] Enum: `DatabaseEngine` (`postgres`, `mysql`)
+- [x] Enum: `CacheEngine` (`redis`, `valkey`)
+- [x] Action: `ProvisionDatabase`, `DeleteDatabase`, `RotateDatabaseCredentials`
+- [x] Action: `ProvisionCache`, `DeleteCache`, `RotateCacheCredentials`
+- [x] Action: `BindServiceToEnvironment`, `UnbindServiceFromEnvironment`
+- [x] Service: `DatabaseProvisioner` interface with `PostgresProvisioner` and `MysqlProvisioner`
+- [x] Service: `CacheProvisioner` interface with `RedisProvisioner`
+- [x] Support db-role nodes for dedicated database servers
+- [x] Support cache-role nodes for dedicated cache servers
+- [x] Migration: `create_storage_buckets_table` (ulid PK, name, provider varchar, region varchar, access_key encrypted, secret_key encrypted, bucket_name, timestamps)
+- [x] Model: `StorageBucket.php`
+- [x] Action: `ProvisionStorageBucket`, `DeleteStorageBucket`, `RotateStorageCredentials`
 - [ ] Action: `BindStorageToEnvironment`, `UnbindStorageFromEnvironment`
-- [ ] Store generated service credentials as secrets automatically
-- [ ] Controller, FormRequests, Resources
-- [ ] Tests: engine selection, provisioning flow, credential rotation, environment binding, storage provisioning
-- [ ] UI: service provisioning cards on environment detail (Add database, Add cache, Add bucket) with picker modals
+- [x] Store generated service credentials as secrets automatically
+- [x] Controller, FormRequests, Resources
+- [x] Tests: engine selection, provisioning flow, credential rotation, environment binding, storage provisioning
+- [x] UI: service provisioning cards on environment detail (Add database, Add cache, Add bucket) with picker modals
 - [ ] UI: database cluster picker modal (select existing or create new, show engine version badge)
 - [ ] UI: cache picker modal (select existing or create new)
 - [ ] UI: storage bucket picker modal (select existing or create new)

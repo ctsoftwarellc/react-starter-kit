@@ -4,6 +4,7 @@ namespace App\Modules\AppPlatform\Models;
 
 use App\Modules\AppPlatform\Enums\EnvironmentType;
 use App\Modules\Infrastructure\Models\Cluster;
+use App\Modules\ServiceManagement\Models\ServiceBinding;
 use App\Support\Concerns\HasUlid;
 use Database\Factories\EnvironmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -48,6 +49,11 @@ class Environment extends Model
     public function processDefinitions(): HasMany
     {
         return $this->hasMany(ProcessDefinition::class);
+    }
+
+    public function serviceBindings(): HasMany
+    {
+        return $this->hasMany(ServiceBinding::class);
     }
 
     protected static function newFactory(): EnvironmentFactory
