@@ -110,83 +110,83 @@
 ---
 
 ## Phase 2: Infrastructure
-**Status: NOT STARTED**
+**Status: COMPLETE**
 
 ### 2.1 Providers
-- [ ] Migration: `create_providers_table` (ulid PK, name, type varchar, credentials encrypted text, is_active bool)
-- [ ] Model: `app/Modules/Infrastructure/Models/Provider.php`
-- [ ] Enum: `ProviderType` (digitalocean, hetzner, vultr, aws, manual)
-- [ ] Action: `CreateProvider`, `UpdateProvider`, `DeleteProvider`, `TestProviderConnection`
-- [ ] Service interface: `app/Modules/Infrastructure/Services/Providers/ProviderInterface.php`
-- [ ] Service: `DigitalOceanProvider.php` (list regions, list sizes, create droplet, delete droplet)
-- [ ] Service: `ManualProvider.php` (no-op — manual servers don't use provider API)
-- [ ] Controller: `ProviderController` (index, store, update, destroy, test)
-- [ ] FormRequest: `CreateProviderRequest`, `UpdateProviderRequest`
-- [ ] Resource: `ProviderResource` (NEVER expose credentials)
-- [ ] Factory: `ProviderFactory`
-- [ ] Feature tests: CRUD, test connection
-- [ ] UI: provider management in settings
+- [x] Migration: `create_providers_table` (ulid PK, name, type varchar, credentials encrypted text, is_active bool)
+- [x] Model: `app/Modules/Infrastructure/Models/Provider.php`
+- [x] Enum: `ProviderType` (digitalocean, hetzner, vultr, aws, manual)
+- [x] Action: `CreateProvider`, `UpdateProvider`, `DeleteProvider`, `TestProviderConnection`
+- [x] Service interface: `app/Modules/Infrastructure/Services/Providers/ProviderInterface.php`
+- [x] Service: `DigitalOceanProvider.php` (list regions, list sizes, create droplet, delete droplet)
+- [x] Service: `ManualProvider.php` (no-op — manual servers don't use provider API)
+- [x] Controller: `ProviderController` (index, store, update, destroy, test)
+- [x] FormRequest: `CreateProviderRequest`, `UpdateProviderRequest`
+- [x] Resource: `ProviderResource` (NEVER expose credentials)
+- [x] Factory: `ProviderFactory`
+- [x] Feature tests: CRUD, test connection
+- [x] UI: provider management in settings
 
 ### 2.2 Servers
-- [ ] Migration: `create_servers_table` (full schema from architecture doc Section 6)
-- [ ] Model: `app/Modules/Infrastructure/Models/Server.php` (HasStateMachine, relationships, casts)
-- [ ] Enum: `ServerStatus` (pending, provisioning, bootstrapping, active, draining, cordoned, maintenance, decommissioning, decommissioned, failed)
-- [ ] Enum: `NodeRole` (web, worker, db, cache, queue, bastion)
-- [ ] State machine: transitions map in Server model (from architecture doc Section 7.1)
-- [ ] Action: `RegisterServer` (manual registration — IP, SSH creds, name)
-- [ ] Action: `ProvisionServer` (create via provider API)
-- [ ] Action: `DrainNode`, `CordonNode`, `ActivateNode`, `DecommissionNode`
-- [ ] Event: `ServerRegistered`, `ServerBootstrapped`, `ServerHealthChanged`
-- [ ] DTO: `RegisterServerData`
-- [ ] Controller: `ServerController` (index, store, show, update, destroy + bootstrap/drain/cordon/activate)
-- [ ] FormRequests, Resources
-- [ ] Factory: `ServerFactory`
-- [ ] Unit tests: state machine transitions (all valid + all invalid)
-- [ ] Feature tests: server CRUD, state transitions
-- [ ] UI: server list (table with status, IP, cluster, roles, heartbeat)
-- [ ] UI: server detail (status badge, actions, metadata)
-- [ ] UI: register server form
+- [x] Migration: `create_servers_table` (full schema from architecture doc Section 6)
+- [x] Model: `app/Modules/Infrastructure/Models/Server.php` (HasStateMachine, relationships, casts)
+- [x] Enum: `ServerStatus` (pending, provisioning, bootstrapping, active, draining, cordoned, maintenance, decommissioning, decommissioned, failed)
+- [x] Enum: `NodeRole` (web, worker, db, cache, queue, bastion)
+- [x] State machine: transitions map in Server model (from architecture doc Section 7.1)
+- [x] Action: `RegisterServer` (manual registration — IP, SSH creds, name)
+- [x] Action: `ProvisionServer` (create via provider API)
+- [x] Action: `DrainNode`, `CordonNode`, `ActivateNode`, `DecommissionNode`
+- [x] Event: `ServerRegistered`, `ServerBootstrapped`, `ServerHealthChanged`
+- [x] DTO: `RegisterServerData`
+- [x] Controller: `ServerController` (index, store, show, update, destroy + bootstrap/drain/cordon/activate)
+- [x] FormRequests, Resources
+- [x] Factory: `ServerFactory`
+- [x] Unit tests: state machine transitions (all valid + all invalid)
+- [x] Feature tests: server CRUD, state transitions
+- [x] UI: server list (table with status, IP, cluster, roles, heartbeat)
+- [x] UI: server detail (status badge, actions, metadata)
+- [x] UI: register server form
 
 ### 2.3 SSH Bootstrap
-- [ ] Service: `app/Modules/Infrastructure/Services/SshService.php` (connect, execute command, upload file, disconnect)
-- [ ] Service: `app/Modules/Infrastructure/Services/ServerBootstrapper.php` (orchestrate full bootstrap sequence)
-- [ ] Action: `BootstrapServer` (generate agent token, call bootstrapper, update status)
-- [ ] Job: `app/Modules/Infrastructure/Jobs/BootstrapServer.php` (async, on infrastructure queue)
-- [ ] Job: `app/Modules/Infrastructure/Jobs/ProvisionServer.php` (create via provider API, then bootstrap)
-- [ ] Job: `app/Modules/Infrastructure/Jobs/PushSshKeys.php` (update authorized_keys on server)
-- [ ] Bootstrap script template (install packages, configure firewall, create helm user, install agent)
-- [ ] Feature test: bootstrap job (mock SSH)
-- [ ] UI: bootstrap button on server detail, progress indication
+- [x] Service: `app/Modules/Infrastructure/Services/SshService.php` (connect, execute command, upload file, disconnect)
+- [x] Service: `app/Modules/Infrastructure/Services/ServerBootstrapper.php` (orchestrate full bootstrap sequence)
+- [x] Action: `BootstrapServer` (generate agent token, call bootstrapper, update status)
+- [x] Job: `app/Modules/Infrastructure/Jobs/BootstrapServer.php` (async, on infrastructure queue)
+- [x] Job: `app/Modules/Infrastructure/Jobs/ProvisionServer.php` (create via provider API, then bootstrap)
+- [x] Job: `app/Modules/Infrastructure/Jobs/PushSshKeys.php` (update authorized_keys on server)
+- [x] Bootstrap script template (install packages, configure firewall, create helm user, install agent)
+- [x] Feature test: bootstrap job (mock SSH)
+- [x] UI: bootstrap button on server detail, progress indication
 
 ### 2.4 Clusters
-- [ ] Migration: `create_clusters_table`, `create_cluster_node_table`
-- [ ] Model: `app/Modules/Infrastructure/Models/Cluster.php` (HasStateMachine)
-- [ ] Enum: `ClusterStatus` (pending, provisioning, active, updating, scaling, degraded, maintenance, decommissioning, decommissioned)
-- [ ] State machine: transitions in Cluster model (from architecture doc Section 7.2)
-- [ ] Action: `CreateCluster`, `UpdateCluster`, `DeleteCluster`
-- [ ] Action: `AddNodeToCluster`, `RemoveNodeFromCluster`, `UpdateNodeRole`
-- [ ] Event: `ClusterTopologyChanged`
-- [ ] Controller: `ClusterController` (CRUD + node management endpoints)
-- [ ] FormRequests, Resources
-- [ ] Factory: `ClusterFactory`
-- [ ] Unit tests: cluster state machine
-- [ ] Feature tests: cluster CRUD, node assignment
-- [ ] UI: cluster list (name, status, node count by role)
-- [ ] UI: cluster detail (node list, add/remove nodes, role assignment)
+- [x] Migration: `create_clusters_table`, `create_cluster_node_table`
+- [x] Model: `app/Modules/Infrastructure/Models/Cluster.php` (HasStateMachine)
+- [x] Enum: `ClusterStatus` (pending, provisioning, active, updating, scaling, degraded, maintenance, decommissioning, decommissioned)
+- [x] State machine: transitions in Cluster model (from architecture doc Section 7.2)
+- [x] Action: `CreateCluster`, `UpdateCluster`, `DeleteCluster`
+- [x] Action: `AddNodeToCluster`, `RemoveNodeFromCluster`, `UpdateNodeRole`
+- [x] Event: `ClusterTopologyChanged`
+- [x] Controller: `ClusterController` (CRUD + node management endpoints)
+- [x] FormRequests, Resources
+- [x] Factory: `ClusterFactory`
+- [x] Unit tests: cluster state machine
+- [x] Feature tests: cluster CRUD, node assignment
+- [x] UI: cluster list (name, status, node count by role)
+- [x] UI: cluster detail (node list, add/remove nodes, role assignment)
 
 ### 2.5 Agent API
-- [ ] Middleware: `AuthenticateAgent` (validate server agent token from Bearer header)
-- [ ] Migration or column: `agent_commands` table (id, server_id, type, payload jsonb, status, result jsonb, expires_at, created_at, completed_at)
-- [ ] Controller: `app/Http/Controllers/Api/Agent/AgentController.php` (heartbeat, commands/pending, commands/{id}/result)
-- [ ] Update `routes/agent.php` with actual routes + middleware
-- [ ] Heartbeat handler: update server `last_heartbeat_at`, store basic metrics
-- [ ] Command queue: create commands for agents, agents poll and execute
-- [ ] Contract tests: agent API request/response shapes
+- [x] Middleware: `AuthenticateAgent` (validate server agent token from Bearer header)
+- [x] Migration or column: `agent_commands` table (id, server_id, type, payload jsonb, status, result jsonb, expires_at, created_at, completed_at)
+- [x] Controller: `app/Http/Controllers/Api/Agent/AgentController.php` (heartbeat, commands/pending, commands/{id}/result)
+- [x] Update `routes/agent.php` with actual routes + middleware
+- [x] Heartbeat handler: update server `last_heartbeat_at`, store basic metrics
+- [x] Command queue: create commands for agents, agents poll and execute
+- [x] Contract tests: agent API request/response shapes
 
 ### 2.6 Phase 2 Completion
-- [ ] All tests passing
-- [ ] Pint passing
-- [ ] Update CLAUDE.md + this roadmap
+- [x] All tests passing
+- [x] Pint passing
+- [x] Update CLAUDE.md + this roadmap
 
 ---
 
@@ -241,7 +241,27 @@
 - [ ] Action, Controller
 - [ ] UI: process list on environment detail
 
-### 3.7 Webhooks
+### 3.7 Service Bindings + Managed Services
+- [ ] Migration: `create_database_instances_table`
+- [ ] Migration: `create_cache_instances_table`
+- [ ] Migration: `create_service_bindings_table`
+- [ ] Model: `DatabaseInstance.php`, `CacheInstance.php`, `ServiceBinding.php`
+- [ ] Enum: `DatabaseEngine` (`postgres`, `mysql`)
+- [ ] Enum: `CacheEngine` (`redis`, `valkey`)
+- [ ] Action: `ProvisionDatabase`, `DeleteDatabase`, `RotateDatabaseCredentials`
+- [ ] Action: `ProvisionCache`, `DeleteCache`, `RotateCacheCredentials`
+- [ ] Action: `BindServiceToEnvironment`, `UnbindServiceFromEnvironment`
+- [ ] Service: `DatabaseProvisioner` interface with `PostgresProvisioner` and `MysqlProvisioner`
+- [ ] Service: `CacheProvisioner` interface with `RedisProvisioner`
+- [ ] Support db-role nodes for dedicated database servers
+- [ ] Support cache-role nodes for dedicated cache servers
+- [ ] Store generated service credentials as secrets automatically
+- [ ] Controller, FormRequests, Resources
+- [ ] Tests: engine selection, provisioning flow, credential rotation, environment binding
+- [ ] UI: choose database engine per environment or dedicated client stack
+- [ ] UI: choose cache engine and bind/unbind services from environments
+
+### 3.8 Webhooks
 - [ ] Migration: `create_webhooks_table`
 - [ ] Model: `Webhook.php`
 - [ ] Action: `SetupWebhook` (register webhook on GitHub via API)
@@ -250,7 +270,7 @@
 - [ ] Controller: `WebhookController` (receive, verify signature, dispatch ProcessWebhook job)
 - [ ] Tests: signature verification, payload parsing
 
-### 3.8 Phase 3 Completion
+### 3.9 Phase 3 Completion
 - [ ] All tests passing, pint passing
 - [ ] Update CLAUDE.md + this roadmap
 
@@ -358,25 +378,41 @@
 - [ ] UI: deployment history list
 - [ ] UI: rollback button + release selector
 
-### 5.3 Health Checks
+### 5.3 Application Server Configuration
+- [ ] Migration: `create_runtime_profiles_table`
+- [ ] Migration: `create_server_role_profiles_table`
+- [ ] Model: `RuntimeProfile.php`, `ServerRoleProfile.php`
+- [ ] Support configurable runtime stacks per application/environment (`php-fpm`, `nginx`, `caddy`, `node`, `supervisor`)
+- [ ] Support role-specific install profiles for `web`, `worker`, `queue`, `db`, and `cache` nodes
+- [ ] Action: `CreateRuntimeProfile`, `UpdateRuntimeProfile`, `ApplyRuntimeProfile`
+- [ ] Action: `CreateServerRoleProfile`, `UpdateServerRoleProfile`, `ApplyServerRoleProfile`
+- [ ] Agent command type: `configure_runtime`
+- [ ] Agent command type: `configure_service`
+- [ ] Generate role-specific config for app servers, workers, databases, and caches
+- [ ] Support dedicated client stacks by assigning an environment to its own cluster and service set
+- [ ] Tests: runtime rendering, role profile application, dedicated-stack isolation
+- [ ] UI: runtime profile editor and role profile editor
+- [ ] UI: environment option to use shared cluster or dedicated client infrastructure
+
+### 5.4 Health Checks
 - [ ] Migration: `create_health_checks_table`
 - [ ] Model: `HealthCheck.php`
 - [ ] Action: `RunHealthCheck` (HTTP GET to target, evaluate thresholds)
 - [ ] Configure health check per environment
 - [ ] UI: health check config on environment detail
 
-### 5.4 Agent Deploy Commands
+### 5.5 Agent Deploy Commands
 - [ ] Define `deploy` command type in agent command system
 - [ ] Deploy command payload: artifact URL, hash, config, processes, pre/post activate hooks
 - [ ] Agent contract test: deploy command request/response shape
 - [ ] Define `rollback` command type
 - [ ] Agent contract test: rollback command
 
-### 5.5 Migration: add active_release_id to environments
+### 5.6 Migration: add active_release_id to environments
 - [ ] Migration: `add_active_release_to_environments_table`
 - [ ] Update Environment model relationship
 
-### 5.6 Phase 5 Completion
+### 5.7 Phase 5 Completion
 - [ ] Integration test: full deployment workflow (create release → deploy → health check → activate)
 - [ ] Integration test: rollback workflow (deploy → fail → rollback)
 - [ ] All tests passing, pint passing
@@ -411,21 +447,40 @@
 - [ ] Listener: `RegenerateProxyConfigs` on `DomainVerified`, `ClusterTopologyChanged`
 - [ ] Agent command type: `update_proxy_config`
 
-### 6.4 Backups (post-MVP stretch)
+### 6.4 Bootstrap Hardening + Server Security
+- [ ] Expand bootstrap script template for fresh Ubuntu 22.04/24.04 instances
+- [ ] Create non-root `helm` system user with least-privilege sudo for managed operations
+- [ ] Disable password SSH authentication after key install succeeds
+- [ ] Disable root SSH login by default with explicit opt-out for recovery workflows
+- [ ] Lock down `ufw` rules by role (`web`, `worker`, `db`, `cache`, `bastion`)
+- [ ] Bind Postgres/MySQL/Redis to private interfaces by default
+- [ ] Install and configure `fail2ban` baseline for SSH
+- [ ] Configure unattended security upgrades
+- [ ] Write agent config to `/etc/helm/agent.conf` with locked-down permissions
+- [ ] Rotate agent tokens and support server rekey workflow
+- [ ] Push operator SSH keys to managed hosts and support authorized key rotation
+- [ ] Add server hardening audit/check action to detect drift from baseline
+- [ ] Tests: bootstrap hardening on clean Ubuntu images, SSH lockout prevention, role firewall rules
+
+### 6.5 Backups + Recovery
 - [ ] Migration: `create_backups_table`
 - [ ] Model, Enum (`BackupStatus`), State machine
 - [ ] Action: `CreateBackup`, `RestoreBackup`
+- [ ] Support database backups for both PostgreSQL and MySQL
+- [ ] Support file backups for application volumes and uploaded assets
+- [ ] Support restore verification workflow before marking backup healthy
 - [ ] Job: `ExecuteBackup`, `ApplyRetentionPolicy`
 - [ ] Controller, tests
 - [ ] UI: backup list, trigger backup, restore
 
-### 6.5 Dashboard
+### 6.6 Dashboard
 - [ ] Real data for dashboard cards: server count by status, cluster health, app count
 - [ ] Recent deployments list (last 10)
 - [ ] Recent pipeline runs list (last 10)
+- [ ] Service overview cards: database instances, cache instances, backup status
 - [ ] Wire up all navigation links
 
-### 6.6 Polish
+### 6.7 Polish
 - [ ] Error pages (404, 500, 503)
 - [ ] Loading states and skeleton screens
 - [ ] Toast notifications for async operations
@@ -433,7 +488,8 @@
 - [ ] Responsive sidebar
 - [ ] Keyboard shortcuts (post-MVP)
 
-### 6.7 Phase 6 Completion
+### 6.8 Phase 6 Completion
+- [ ] Full E2E dedicated client flow works: provision cluster → choose Postgres/MySQL → bind cache → deploy → backup → restore test
 - [ ] Full E2E flow works: register server → bootstrap → cluster → app → pipeline → deploy → domain + SSL
 - [ ] All tests passing, pint passing
 - [ ] Update CLAUDE.md to mark MVP complete
@@ -450,8 +506,6 @@ These are tracked here for reference but are NOT part of the MVP build.
 - [ ] Artifact promotion between environments
 - [ ] Blue-green deployments
 - [ ] Canary deployments
-- [ ] Database provisioning workflows
-- [ ] Redis provisioning
 - [ ] Alert rules and notifications
 - [ ] MFA enforcement
 - [ ] Pipeline caching

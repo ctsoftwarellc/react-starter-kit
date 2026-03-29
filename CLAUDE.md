@@ -426,7 +426,7 @@ Fix style: `./vendor/bin/pint`
 |-------|-------|--------|
 | 0 | Foundation: PostgreSQL, Redis, S3, module structure, traits, config | **Done** |
 | 1 | Personal access tokens, SSH keys, projects, audit logs | **Done** |
-| 2 | Providers, servers, clusters, SSH bootstrap, agent API | Pending |
+| 2 | Providers, servers, clusters, SSH bootstrap, agent API | **Done** |
 | 3 | Git connections, applications, environments, secrets, webhooks | Pending |
 | 4 | Pipelines, pipeline runs/jobs, runners, artifacts, log streaming | Pending |
 | 5 | Releases, deployments, rolling deploy, health checks, rollback | Pending |
