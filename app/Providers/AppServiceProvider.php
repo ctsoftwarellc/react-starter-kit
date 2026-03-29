@@ -2,9 +2,15 @@
 
 namespace App\Providers;
 
+use App\Modules\AppPlatform\Events\ApplicationCreated;
+use App\Modules\AppPlatform\Events\EnvironmentConfigChanged;
+use App\Modules\AppPlatform\Events\GitConnectionEstablished;
 use App\Modules\AppPlatform\Events\ProjectCreated;
 use App\Modules\AppPlatform\Events\ProjectDeleted;
 use App\Modules\AppPlatform\Events\ProjectUpdated;
+use App\Modules\AppPlatform\Events\SecretUpdated;
+use App\Modules\AppPlatform\Listeners\CreateDefaultEnvironment;
+use App\Modules\AppPlatform\Listeners\SetupApplicationWebhook;
 use App\Modules\Infrastructure\Events\ClusterTopologyChanged;
 use App\Modules\Infrastructure\Events\ProviderCreated;
 use App\Modules\Infrastructure\Events\ProviderDeleted;
@@ -47,6 +53,10 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ProjectCreated::class, [RecordAuditLog::class, 'handle']);
         Event::listen(ProjectUpdated::class, [RecordAuditLog::class, 'handle']);
         Event::listen(ProjectDeleted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(GitConnectionEstablished::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(ApplicationCreated::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(EnvironmentConfigChanged::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(SecretUpdated::class, [RecordAuditLog::class, 'handle']);
 
         // Infrastructure events → Audit log
         Event::listen(ProviderCreated::class, [RecordAuditLog::class, 'handle']);
@@ -61,6 +71,10 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ServerBootstrapped::class, [UpdateClusterStatus::class, 'handle']);
         Event::listen(ServerHealthChanged::class, [UpdateClusterStatus::class, 'handle']);
         Event::listen(ServerBootstrapped::class, [PushSshKeysOnBootstrap::class, 'handle']);
+
+        // AppPlatform events → Domain listeners
+        Event::listen(ApplicationCreated::class, [CreateDefaultEnvironment::class, 'handle']);
+        Event::listen(ApplicationCreated::class, [SetupApplicationWebhook::class, 'handle']);
     }
 
     /**

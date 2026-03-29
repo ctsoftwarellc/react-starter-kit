@@ -2,6 +2,7 @@
 
 namespace App\Modules\Infrastructure\Models;
 
+use App\Modules\AppPlatform\Models\Environment;
 use App\Modules\Infrastructure\Enums\ClusterStatus;
 use App\Support\Concerns\HasStateMachine;
 use App\Support\Concerns\HasUlid;
@@ -9,6 +10,7 @@ use Database\Factories\ClusterFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cluster extends Model
 {
@@ -34,6 +36,11 @@ class Cluster extends Model
         return $this->belongsToMany(Server::class, 'cluster_node')
             ->withPivot(['role', 'is_active', 'sort_order'])
             ->withTimestamps();
+    }
+
+    public function environments(): HasMany
+    {
+        return $this->hasMany(Environment::class);
     }
 
     protected function getStatusEnum(): string

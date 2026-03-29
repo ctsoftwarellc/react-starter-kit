@@ -2,9 +2,13 @@
 
 namespace App\Modules\Operations\Listeners;
 
+use App\Modules\AppPlatform\Events\ApplicationCreated;
+use App\Modules\AppPlatform\Events\EnvironmentConfigChanged;
+use App\Modules\AppPlatform\Events\GitConnectionEstablished;
 use App\Modules\AppPlatform\Events\ProjectCreated;
 use App\Modules\AppPlatform\Events\ProjectDeleted;
 use App\Modules\AppPlatform\Events\ProjectUpdated;
+use App\Modules\AppPlatform\Events\SecretUpdated;
 use App\Modules\Infrastructure\Events\ClusterTopologyChanged;
 use App\Modules\Infrastructure\Events\ProviderCreated;
 use App\Modules\Infrastructure\Events\ProviderDeleted;
@@ -20,6 +24,10 @@ class RecordAuditLog
         ProjectCreated::class => 'project.created',
         ProjectUpdated::class => 'project.updated',
         ProjectDeleted::class => 'project.deleted',
+        GitConnectionEstablished::class => 'git_connection.established',
+        ApplicationCreated::class => 'application.created',
+        EnvironmentConfigChanged::class => 'environment.config_changed',
+        SecretUpdated::class => 'secret.updated',
         ProviderCreated::class => 'provider.created',
         ProviderUpdated::class => 'provider.updated',
         ProviderDeleted::class => 'provider.deleted',
@@ -51,6 +59,10 @@ class RecordAuditLog
     private function getAuditable(object $event): mixed
     {
         return $event->project
+            ?? $event->gitConnection
+            ?? $event->application
+            ?? $event->environment
+            ?? $event->secret
             ?? $event->provider
             ?? $event->server
             ?? $event->cluster
@@ -82,6 +94,36 @@ class RecordAuditLog
             return [null, [
                 'name' => $event->provider->name,
                 'type' => $event->provider->type->value,
+            ]];
+        }
+
+        if ($event instanceof GitConnectionEstablished) {
+            return [null, [
+                'provider' => $event->gitConnection->provider->value,
+                'account_name' => $event->gitConnection->account_name,
+            ]];
+        }
+
+        if ($event instanceof ApplicationCreated) {
+            return [null, [
+                'name' => $event->application->name,
+                'slug' => $event->application->slug,
+                'runtime' => $event->application->runtime->value,
+                'repository_url' => $event->application->repository_url,
+            ]];
+        }
+
+        if ($event instanceof EnvironmentConfigChanged) {
+            return [null, [
+                'change_type' => $event->changeType,
+                'changes' => $event->changes,
+            ]];
+        }
+
+        if ($event instanceof SecretUpdated) {
+            return [null, [
+                'change_type' => $event->changeType,
+                'metadata' => $event->metadata,
             ]];
         }
 
