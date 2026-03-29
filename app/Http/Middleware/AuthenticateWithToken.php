@@ -12,6 +12,10 @@ class AuthenticateWithToken
 {
     public function handle(Request $request, Closure $next): Response
     {
+        if (Auth::check()) {
+            return $next($request);
+        }
+
         $bearer = $request->bearerToken();
 
         if (! $bearer) {

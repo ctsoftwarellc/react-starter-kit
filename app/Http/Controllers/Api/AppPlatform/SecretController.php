@@ -37,8 +37,6 @@ class SecretController extends Controller
 
     public function update(UpdateSecretRequest $request, Environment $environment, Secret $secret): SecretResource
     {
-        abort_if($secret->environment_id !== $environment->id, 404);
-
         $secret = (new UpdateSecret)->execute(
             $secret,
             UpdateSecretData::from($request->validated()),
@@ -49,8 +47,6 @@ class SecretController extends Controller
 
     public function destroy(Environment $environment, Secret $secret): Response
     {
-        abort_if($secret->environment_id !== $environment->id, 404);
-
         (new DeleteSecret)->execute($secret);
 
         return response()->noContent();
@@ -58,8 +54,6 @@ class SecretController extends Controller
 
     public function reveal(Environment $environment, Secret $secret): JsonResponse
     {
-        abort_if($secret->environment_id !== $environment->id, 404);
-
         return response()->json([
             'value' => (new RevealSecret)->execute($secret),
         ]);

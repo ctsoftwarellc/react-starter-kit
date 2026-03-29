@@ -33,8 +33,6 @@ class ProcessDefinitionController extends Controller
 
     public function update(ProcessDefinitionRequest $request, Environment $environment, ProcessDefinition $processDefinition): ProcessDefinitionResource
     {
-        abort_if($processDefinition->environment_id !== $environment->id, 404);
-
         $processDefinition = (new UpdateProcessDefinition)->execute(
             $processDefinition,
             ProcessDefinitionData::from($request->validated()),
@@ -45,8 +43,6 @@ class ProcessDefinitionController extends Controller
 
     public function destroy(Environment $environment, ProcessDefinition $processDefinition): Response
     {
-        abort_if($processDefinition->environment_id !== $environment->id, 404);
-
         (new DeleteProcessDefinition)->execute($processDefinition);
 
         return response()->noContent();

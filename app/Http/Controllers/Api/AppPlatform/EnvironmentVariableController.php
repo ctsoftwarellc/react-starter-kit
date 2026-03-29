@@ -32,11 +32,10 @@ class EnvironmentVariableController extends Controller
 
     public function update(SetEnvironmentVariableRequest $request, Environment $environment, EnvironmentVariable $variable): EnvironmentVariableResource
     {
-        abort_if($variable->environment_id !== $environment->id, 404);
-
         $variable = (new SetEnvironmentVariable)->execute(
             $environment,
             SetEnvironmentVariableData::from($request->validated()),
+            $variable,
         );
 
         return new EnvironmentVariableResource($variable);
@@ -44,8 +43,6 @@ class EnvironmentVariableController extends Controller
 
     public function destroy(Environment $environment, EnvironmentVariable $variable): Response
     {
-        abort_if($variable->environment_id !== $environment->id, 404);
-
         (new DeleteEnvironmentVariable)->execute($variable);
 
         return response()->noContent();

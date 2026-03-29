@@ -7,6 +7,7 @@
 ---
 
 ## Phase 0: Foundation
+
 **Status: COMPLETE**
 
 - [x] Configure PostgreSQL as default DB, create `helm` database
@@ -32,9 +33,11 @@
 ---
 
 ## Phase 1: Auth, Projects, Audit Logs
+
 **Status: COMPLETE**
 
 ### 1.1 Personal Access Tokens
+
 - [x] Migration: `create_personal_access_tokens_table` (ulid PK, user_id, name, token hash, abilities jsonb, last_used_at, expires_at)
 - [x] Model: `app/Models/PersonalAccessToken.php` (stays at root, used by auth guard)
 - [x] Action: `CreatePersonalAccessToken` (hash token, return plaintext once)
@@ -52,6 +55,7 @@
 - [x] UI: revoke token button
 
 ### 1.2 SSH Keys
+
 - [x] Migration: `create_ssh_keys_table` (ulid PK, user_id, name, public_key text, fingerprint unique)
 - [x] Model: `app/Models/SshKey.php` (stays at root)
 - [x] Action: `AddSshKey` (compute fingerprint from public key, validate format)
@@ -66,6 +70,7 @@
 - [x] UI: add key form, delete button
 
 ### 1.3 Projects
+
 - [x] Migration: `create_projects_table` (ulid PK, name, slug unique, description nullable, timestamps, soft_deletes)
 - [x] Model: `app/Modules/AppPlatform/Models/Project.php`
 - [x] Action: `CreateProject` (generate slug from name)
@@ -83,6 +88,7 @@
 - [x] UI: project detail page (will hold apps later)
 
 ### 1.4 Audit Logs
+
 - [x] Migration: `create_audit_logs_table` (ulid PK, user_id nullable, action varchar, auditable_type, auditable_id, old_values jsonb, new_values jsonb, ip_address inet, user_agent text, created_at — NO updated_at)
 - [x] Model: `app/Modules/Operations/Models/AuditLog.php` (no HasUlid timestamps override needed — only created_at)
 - [x] Action: `RecordAuditLog`
@@ -95,6 +101,7 @@
 - [x] UI: activity feed page (chronological list, filterable)
 
 ### 1.5 Sidebar Navigation + Dashboard
+
 - [x] Update Inertia layout with sidebar navigation matching architecture (Dashboard, Servers, Clusters, Projects, Runners, Activity, Settings)
 - [x] Dashboard page: placeholder cards for servers, apps, recent deploys, recent pipelines
 - [x] Settings layout with sub-nav: Profile, SSH Keys, API Tokens
@@ -102,6 +109,7 @@
 - [x] Move provider settings into Settings section (placeholder for Phase 2)
 
 ### 1.6 Phase 1 Completion
+
 - [x] All new tests passing
 - [x] Pint passing
 - [x] Update CLAUDE.md phase table to mark Phase 1 complete
@@ -110,9 +118,11 @@
 ---
 
 ## Phase 2: Infrastructure
+
 **Status: COMPLETE**
 
 ### 2.1 Providers
+
 - [x] Migration: `create_providers_table` (ulid PK, name, type varchar, credentials encrypted text, is_active bool)
 - [x] Model: `app/Modules/Infrastructure/Models/Provider.php`
 - [x] Enum: `ProviderType` (digitalocean, hetzner, vultr, aws, manual)
@@ -128,6 +138,7 @@
 - [x] UI: provider management in settings
 
 ### 2.2 Servers
+
 - [x] Migration: `create_servers_table` (full schema from architecture doc Section 6)
 - [x] Model: `app/Modules/Infrastructure/Models/Server.php` (HasStateMachine, relationships, casts)
 - [x] Enum: `ServerStatus` (pending, provisioning, bootstrapping, active, draining, cordoned, maintenance, decommissioning, decommissioned, failed)
@@ -148,6 +159,7 @@
 - [x] UI: register server form
 
 ### 2.3 SSH Bootstrap
+
 - [x] Service: `app/Modules/Infrastructure/Services/SshService.php` (connect, execute command, upload file, disconnect)
 - [x] Service: `app/Modules/Infrastructure/Services/ServerBootstrapper.php` (orchestrate full bootstrap sequence)
 - [x] Action: `BootstrapServer` (generate agent token, call bootstrapper, update status)
@@ -159,6 +171,7 @@
 - [x] UI: bootstrap button on server detail, progress indication
 
 ### 2.4 Clusters
+
 - [x] Migration: `create_clusters_table`, `create_cluster_node_table`
 - [x] Model: `app/Modules/Infrastructure/Models/Cluster.php` (HasStateMachine)
 - [x] Enum: `ClusterStatus` (pending, provisioning, active, updating, scaling, degraded, maintenance, decommissioning, decommissioned)
@@ -175,6 +188,7 @@
 - [x] UI: cluster detail (node list, add/remove nodes, role assignment)
 
 ### 2.5 Agent API
+
 - [x] Middleware: `AuthenticateAgent` (validate server agent token from Bearer header)
 - [x] Migration or column: `agent_commands` table (id, server_id, type, payload jsonb, status, result jsonb, expires_at, created_at, completed_at)
 - [x] Controller: `app/Http/Controllers/Api/Agent/AgentController.php` (heartbeat, commands/pending, commands/{id}/result)
@@ -184,6 +198,7 @@
 - [x] Contract tests: agent API request/response shapes
 
 ### 2.6 Phase 2 Completion
+
 - [x] All tests passing
 - [x] Pint passing
 - [x] Update CLAUDE.md + this roadmap
@@ -191,65 +206,65 @@
 ---
 
 ## Phase 3: Applications, Environments, Secrets
-**Status: NOT STARTED**
+
+**Status: COMPLETE**
 
 ### 3.1 Git Connections
-- [ ] Migration: `create_git_connections_table`
-- [ ] Model: `GitConnection.php`
-- [ ] GitHub OAuth flow (authorize, callback, store tokens)
-- [ ] Action: `CreateGitConnection`, `DeleteGitConnection`
-- [ ] Controller + routes for OAuth flow
-- [ ] UI: connect GitHub account in settings or app creation
+
+- [x] Migration: `create_git_connections_table`
+- [x] Model: `GitConnection.php`
+- [x] GitHub OAuth flow (authorize, callback, store tokens)
+- [x] Action: `CreateGitConnection`, `DeleteGitConnection`
+- [x] Controller + routes for OAuth flow
+- [x] UI: connect GitHub account in app creation flow
 
 ### 3.2 Applications
-- [ ] Migration: `create_applications_table`
-- [ ] Model: `Application.php` (belongsTo Project, GitConnection; hasMany Environment, Pipeline)
-- [ ] Enum: `Runtime` (php, node, python, go)
-- [ ] Action: `CreateApplication`, `UpdateApplication`, `DeleteApplication`
-- [ ] Event: `ApplicationCreated` → listener creates default production environment
-- [ ] Controller, FormRequests, Resources
-- [ ] Factory
-- [ ] Tests
-- [ ] UI: app list within project, app creation form, app detail with tabs
+
+- [x] Migration: `create_applications_table`
+- [x] Model: `Application.php`
+- [x] Enum: `Runtime` (php, node, python, go)
+- [x] Action: `CreateApplication`, `UpdateApplication`, `DeleteApplication`
+- [x] Event: `ApplicationCreated` with default-environment listener when a default cluster is supplied
+- [x] Controller, FormRequests, Resources
+- [x] Factory
+- [x] Tests
+- [x] UI: app list within project, app creation form, app detail page
 
 ### 3.3 Environments
-- [ ] Migration: `create_environments_table`
-- [ ] Model: `Environment.php` (belongsTo Application, Cluster; hasMany variables, secrets, processes, domains, deployments)
-- [ ] Enum: `EnvironmentType` (production, staging, preview)
-- [ ] Action: `CreateEnvironment`, `UpdateEnvironment`, `DeleteEnvironment`
-- [ ] Controller, FormRequests, Resources
-- [ ] Factory
-- [ ] Tests
-- [ ] UI: environment list in app detail
-- [ ] UI: environment detail page (Laravel Cloud-style layout):
-  - Breadcrumb: Project > App > Environment
-  - Tab bar: Environment, Deployments, Commands, Logs
-  - Header: app icon, name · environment, GitHub repo link, branch name, Deploy + Visit buttons
-  - Left panel: Network card (proxy status, SSL status, firewall), Domains card (status dots, + add domain)
-  - Right panel: service provisioning cards (Add database, Add cache) with picker modals
-  - Process definitions section with worker/scheduler management
-  - Cluster assignment section (which cluster runs web vs worker processes)
+
+- [x] Migration: `create_environments_table`
+- [x] Model: `Environment.php`
+- [x] Enum: `EnvironmentType` (production, staging, preview)
+- [x] Action: `CreateEnvironment`, `UpdateEnvironment`, `DeleteEnvironment`
+- [x] Controller, FormRequests, Resources
+- [x] Factory
+- [x] Tests
+- [x] UI: environment list in app detail, environment detail page
 
 ### 3.4 Environment Variables
-- [ ] Migration: `create_environment_variables_table`
-- [ ] Model, Action (SetEnvironmentVariable, DeleteEnvironmentVariable), Controller
-- [ ] UI: inline key-value editor on environment detail page
+
+- [x] Migration: `create_environment_variables_table`
+- [x] Model, Action (`SetEnvironmentVariable`, `DeleteEnvironmentVariable`), Controller
+- [x] UI: inline key-value editor on environment detail page
 
 ### 3.5 Secrets
-- [ ] Migration: `create_secrets_table`
-- [ ] Model: `Secret.php` (encrypted_value cast)
-- [ ] Action: `CreateSecret`, `UpdateSecret`, `DeleteSecret`, `RevealSecret` (audit logged)
-- [ ] Controller (CRUD + reveal endpoint)
-- [ ] Tests: ensure values never leaked in normal API responses
-- [ ] UI: secret key list, reveal button, create/edit/delete
+
+- [x] Migration: `create_secrets_table`
+- [x] Model: `Secret.php` (encrypted_value cast)
+- [x] Action: `CreateSecret`, `UpdateSecret`, `DeleteSecret`, `RevealSecret` (audit logged)
+- [x] Controller (CRUD + reveal endpoint)
+- [x] Tests: ensure values never leaked in normal API responses
+- [x] UI: secret key list, reveal button, create/edit/delete
 
 ### 3.6 Process Definitions
-- [ ] Migration: `create_process_definitions_table`
-- [ ] Model, Enum (`ProcessType`: web, worker, scheduler, custom)
-- [ ] Action, Controller
-- [ ] UI: process list on environment detail
+
+- [x] Migration: `create_process_definitions_table`
+- [x] Model, Enum (`ProcessType`: web, worker, scheduler, custom)
+- [x] Action, Controller
+- [x] UI: process list on environment detail
 
 ### 3.7 Service Bindings + Managed Services
+
 - [ ] Migration: `create_database_instances_table`
 - [ ] Migration: `create_cache_instances_table`
 - [ ] Migration: `create_service_bindings_table`
@@ -276,24 +291,28 @@
 - [ ] UI: storage bucket picker modal (select existing or create new)
 
 ### 3.8 Webhooks
-- [ ] Migration: `create_webhooks_table`
-- [ ] Model: `Webhook.php`
-- [ ] Action: `SetupWebhook` (register webhook on GitHub via API)
-- [ ] Webhook signature verification middleware
-- [ ] Update `routes/webhooks.php` with actual route
-- [ ] Controller: `WebhookController` (receive, verify signature, dispatch ProcessWebhook job)
-- [ ] Tests: signature verification, payload parsing
+
+- [x] Migration: `create_webhooks_table`
+- [x] Model: `Webhook.php`
+- [x] Action: `SetupWebhook` (register webhook on GitHub via API)
+- [x] Webhook signature verification middleware
+- [x] Update `routes/webhooks.php` with actual route
+- [x] Controller: `WebhookController` (Phase 3 placeholder receive/verify path; full `ProcessWebhook` ingestion deferred to Phase 4)
+- [x] Tests: signature verification, payload parsing
 
 ### 3.9 Phase 3 Completion
-- [ ] All tests passing, pint passing
-- [ ] Update CLAUDE.md + this roadmap
+
+- [x] All tests passing, pint passing
+- [x] Update CLAUDE.md + this roadmap
 
 ---
 
 ## Phase 4: Pipelines, Runners, Artifacts
+
 **Status: NOT STARTED**
 
 ### 4.1 Pipelines
+
 - [ ] Migration: `create_pipelines_table`
 - [ ] Model: `Pipeline.php` (definition jsonb, trigger config)
 - [ ] Action: `CreatePipeline`, `UpdatePipeline`, `DeletePipeline`
@@ -303,6 +322,7 @@
 - [ ] UI: pipeline list in app detail, pipeline editor (JSON form builder or raw JSON)
 
 ### 4.2 Pipeline Runs
+
 - [ ] Migration: `create_pipeline_runs_table`
 - [ ] Model: `PipelineRun.php` (HasStateMachine)
 - [ ] Enum: `PipelineRunStatus` (pending, running, succeeded, failed, cancelled, timed_out)
@@ -319,6 +339,7 @@
 - [ ] UI: run list with status badges, run detail with stage visualization
 
 ### 4.3 Pipeline Jobs
+
 - [ ] Migration: `create_pipeline_jobs_table`
 - [ ] Model: `PipelineJob.php` (HasStateMachine)
 - [ ] Enum: `PipelineJobStatus` (pending, queued, assigned, running, succeeded, failed, cancelled, timed_out, skipped)
@@ -330,6 +351,7 @@
 - [ ] UI: job cards in run detail, click-to-expand log viewer
 
 ### 4.4 Runners
+
 - [ ] Migration: `create_runners_table`
 - [ ] Model: `Runner.php`
 - [ ] Enum: `RunnerStatus` (online, offline, busy, draining)
@@ -342,6 +364,7 @@
 - [ ] UI: runner list, register runner (show token once)
 
 ### 4.5 Artifacts
+
 - [ ] Migration: `create_artifacts_table`
 - [ ] Model: `Artifact.php` (HasStateMachine)
 - [ ] Enum: `ArtifactStatus` (building, ready, deployed, superseded, expired, failed)
@@ -353,15 +376,18 @@
 - [ ] UI: artifact info in pipeline run detail
 
 ### 4.6 Phase 4 Completion
+
 - [ ] All tests passing, pint passing
 - [ ] Update CLAUDE.md + this roadmap
 
 ---
 
 ## Phase 5: Deployment Engine
+
 **Status: NOT STARTED**
 
 ### 5.1 Releases
+
 - [ ] Migration: `create_releases_table`
 - [ ] Model: `Release.php` (HasStateMachine, config_snapshot jsonb)
 - [ ] Enum: `ReleaseStatus` (pending, deploying, active, superseded, rolled_back, failed)
@@ -371,6 +397,7 @@
 - [ ] Tests
 
 ### 5.2 Deployments
+
 - [ ] Migration: `create_deployments_table`, `create_deployment_steps_table`
 - [ ] Model: `Deployment.php` (HasStateMachine), `DeploymentStep.php`
 - [ ] Enum: `DeploymentStatus` (pending, preparing, deploying, verifying, succeeded, failed, cancelled, rolled_back)
@@ -393,6 +420,7 @@
 - [ ] UI: rollback button + release selector
 
 ### 5.3 Application Server Configuration
+
 - [ ] Migration: `create_runtime_profiles_table`
 - [ ] Migration: `create_server_role_profiles_table`
 - [ ] Model: `RuntimeProfile.php`, `ServerRoleProfile.php`
@@ -409,6 +437,7 @@
 - [ ] UI: environment option to use shared cluster or dedicated client infrastructure
 
 ### 5.4 Health Checks
+
 - [ ] Migration: `create_health_checks_table`
 - [ ] Model: `HealthCheck.php`
 - [ ] Action: `RunHealthCheck` (HTTP GET to target, evaluate thresholds)
@@ -416,6 +445,7 @@
 - [ ] UI: health check config on environment detail
 
 ### 5.5 Agent Deploy Commands
+
 - [ ] Define `deploy` command type in agent command system
 - [ ] Deploy command payload: artifact URL, hash, config, processes, pre/post activate hooks
 - [ ] Agent contract test: deploy command request/response shape
@@ -423,6 +453,7 @@
 - [ ] Agent contract test: rollback command
 
 ### 5.6 Remote Commands (Commands Tab)
+
 - [ ] Migration: `create_remote_commands_table` (ulid PK, environment_id FK, server_id FK nullable, command text, status varchar, output text nullable, exit_code int nullable, started_at, finished_at, created_at)
 - [ ] Model: `app/Modules/Deployment/Models/RemoteCommand.php`
 - [ ] Enum: `RemoteCommandStatus` (pending, running, succeeded, failed, timed_out)
@@ -436,10 +467,12 @@
 - [ ] Security: audit log every command execution, restrict to safe commands by default with opt-in for arbitrary shell
 
 ### 5.7 Migration: add active_release_id to environments
+
 - [ ] Migration: `add_active_release_to_environments_table`
 - [ ] Update Environment model relationship
 
 ### 5.8 Phase 5 Completion
+
 - [ ] Integration test: full deployment workflow (create release → deploy → health check → activate)
 - [ ] Integration test: rollback workflow (deploy → fail → rollback)
 - [ ] All tests passing, pint passing
@@ -448,9 +481,11 @@
 ---
 
 ## Phase 6: Networking, Operations, Polish
+
 **Status: NOT STARTED**
 
 ### 6.1 Domains
+
 - [ ] Migration: `create_domains_table`
 - [ ] Model: `Domain.php`
 - [ ] Action: `AssignDomain`, `RemoveDomain`, `VerifyDomain`
@@ -461,6 +496,7 @@
 - [ ] UI: domain list on environment detail, add domain, verify status
 
 ### 6.2 Certificates
+
 - [ ] Migration: `create_certificates_table`
 - [ ] Model: `Certificate.php`
 - [ ] Enum: `CertificateStatus` (pending, active, expired, failed)
@@ -469,12 +505,14 @@
 - [ ] UI: certificate status next to each domain
 
 ### 6.3 Caddy Proxy Config
+
 - [ ] Service: `CaddyConfigGenerator` (generate Caddyfile from domains + environments)
 - [ ] Job: `PushProxyConfig` (send config to web-role nodes via agent)
 - [ ] Listener: `RegenerateProxyConfigs` on `DomainVerified`, `ClusterTopologyChanged`
 - [ ] Agent command type: `update_proxy_config`
 
 ### 6.4 Bootstrap Hardening + Server Security
+
 - [ ] Expand bootstrap script template for fresh Ubuntu 22.04/24.04 instances
 - [ ] Create non-root `helm` system user with least-privilege sudo for managed operations
 - [ ] Disable password SSH authentication after key install succeeds
@@ -490,6 +528,7 @@
 - [ ] Tests: bootstrap hardening on clean Ubuntu images, SSH lockout prevention, role firewall rules
 
 ### 6.5 Backups + Recovery
+
 - [ ] Migration: `create_backups_table`
 - [ ] Model, Enum (`BackupStatus`), State machine
 - [ ] Action: `CreateBackup`, `RestoreBackup`
@@ -501,6 +540,7 @@
 - [ ] UI: backup list, trigger backup, restore
 
 ### 6.6 Dashboard
+
 - [ ] Real data for dashboard cards: server count by status, cluster health, app count
 - [ ] Recent deployments list (last 10)
 - [ ] Recent pipeline runs list (last 10)
@@ -508,6 +548,7 @@
 - [ ] Wire up all navigation links
 
 ### 6.7 Polish
+
 - [ ] Error pages (404, 500, 503)
 - [ ] Loading states and skeleton screens
 - [ ] Toast notifications for async operations
@@ -516,6 +557,7 @@
 - [ ] Keyboard shortcuts (post-MVP)
 
 ### 6.8 Phase 6 Completion
+
 - [ ] Full E2E dedicated client flow works: provision cluster → choose Postgres/MySQL → bind cache → deploy → backup → restore test
 - [ ] Full E2E flow works: register server → bootstrap → cluster → app → pipeline → deploy → domain + SSL
 - [ ] All tests passing, pint passing
@@ -525,9 +567,11 @@
 ---
 
 ## Phase 7: Observability & Monitoring
+
 **Status: NOT STARTED**
 
 ### 7.1 Server Metrics Collection
+
 - [ ] Migration: `create_server_metrics_table` (bigint PK auto-increment, server_id ulid FK, cpu_percent, memory_percent, disk_percent, load_avg_1m, load_avg_5m, network_rx_bytes, network_tx_bytes, recorded_at timestamp)
 - [ ] Index: (server_id, recorded_at DESC)
 - [ ] Model: `app/Modules/Observability/Models/ServerMetric.php` (bigint PK, no HasUlid, belongsTo Server)
@@ -539,6 +583,7 @@
 - [ ] Tests: metric recording, rollup logic, API filtering by time range
 
 ### 7.2 Alert Rules & Alerts
+
 - [ ] Migration: `create_alert_rules_table` (ulid PK, name, target_type enum server/cluster, target_id nullable, metric varchar, operator varchar, threshold decimal, duration_seconds int, severity varchar, notification_channels jsonb, is_active bool, timestamps)
 - [ ] Migration: `create_alerts_table` (ulid PK, alert_rule_id FK, target_type, target_id, metric, value decimal, threshold decimal, severity varchar, status varchar, acknowledged_at nullable, resolved_at nullable, created_at, updated_at)
 - [ ] Model: `app/Modules/Observability/Models/AlertRule.php`
@@ -555,6 +600,7 @@
 - [ ] Tests: rule evaluation logic, threshold breach detection, alert lifecycle
 
 ### 7.3 Server Metrics Dashboard
+
 - [ ] UI: server detail metrics page — time-range selector (1h, 6h, 24h, 7d, 30d), charts for CPU, memory, disk, load, network (use Recharts)
 - [ ] UI: dashboard health grid — colored tiles (green/yellow/red) per server showing current CPU/memory/disk at a glance, click to drill into server detail
 - [ ] UI: dashboard deployment timeline — last 24h of deploys across all environments, success/failure color-coded
@@ -564,15 +610,18 @@
 - [ ] UI: alerts list with severity badges, acknowledge/resolve actions
 
 ### 7.4 Phase 7 Completion
+
 - [ ] All tests passing, pint passing
 - [ ] Update CLAUDE.md + this roadmap
 
 ---
 
 ## Phase 8: Log Management & Search
+
 **Status: NOT STARTED**
 
 ### 8.1 Structured Log Storage
+
 - [ ] Update `LogStreamer` service to store logs as structured JSONL (timestamp, level, message, source, metadata) instead of raw text
 - [ ] Migration: `create_log_indexes_table` (ulid PK, source_type varchar (pipeline_job, deployment, server), source_id ulid, s3_path varchar, byte_offset_start bigint, byte_offset_end bigint, line_count int, min_timestamp, max_timestamp, created_at)
 - [ ] Model: `app/Modules/Observability/Models/LogIndex.php`
@@ -582,6 +631,7 @@
 - [ ] Tests: JSONL format, index creation, search queries
 
 ### 8.2 Log Viewer API
+
 - [ ] Controller: `LogController` (index — paginated, search, stream)
 - [ ] API: `GET /api/v1/logs?source_type=pipeline_job&source_id={id}&q=error&level=error&after=...&before=...`
 - [ ] Cursor-based pagination for log lines (not offset-based — logs can be huge)
@@ -592,6 +642,7 @@
 - [ ] Tests: pagination, search, level filtering, time range queries
 
 ### 8.3 Real-Time Log Tailing
+
 - [ ] Install and configure Laravel Reverb for WebSocket support
 - [ ] Broadcasting: `LogChunkAppended` event broadcast on private channel per source (e.g., `log.pipeline_job.{id}`)
 - [ ] Update `AppendLogChunk` action to broadcast new chunks
@@ -600,6 +651,7 @@
 - [ ] Tests: broadcast event shape, channel authorization
 
 ### 8.4 CloudWatch-Style Log Viewer UI
+
 - [ ] UI: log viewer component with virtual scrolling (react-window) — render only visible lines, fetch pages on scroll
 - [ ] UI: search bar with regex support, highlight matches, jump-to-next/prev match
 - [ ] UI: level filter toggles (debug, info, warning, error) with color-coded lines
@@ -611,21 +663,25 @@
 - [ ] Wire into pipeline job detail, deployment detail, and server detail pages
 
 ### 8.5 Log Retention
+
 - [ ] Action: `ApplyLogRetention` (delete S3 objects and log_indexes older than configured retention)
 - [ ] Job: `CleanupExpiredLogs` (scheduled daily)
 - [ ] Config: `config/helm.php` log retention settings (default 30 days, configurable per source type)
 - [ ] Tests: retention policy application
 
 ### 8.6 Phase 8 Completion
+
 - [ ] All tests passing, pint passing
 - [ ] Update CLAUDE.md + this roadmap
 
 ---
 
 ## Phase 9: Notifications & Developer Experience
+
 **Status: NOT STARTED**
 
 ### 9.1 Notification System
+
 - [ ] Migration: `create_notification_channels_table` (ulid PK, type varchar (email, slack, discord, webhook), name, config encrypted jsonb, is_active bool, timestamps)
 - [ ] Migration: `create_notifications_table` (ulid PK, channel_id FK, type varchar, subject, body text, metadata jsonb, status varchar (pending, sent, failed), sent_at nullable, created_at)
 - [ ] Model: `app/Modules/Observability/Models/NotificationChannel.php`
@@ -641,6 +697,7 @@
 - [ ] Tests: channel CRUD, dispatch routing, individual notifier output
 
 ### 9.2 Uptime Monitoring
+
 - [ ] Migration: `create_uptime_monitors_table` (ulid PK, name, url varchar, method varchar default GET, expected_status int default 200, interval_seconds int default 60, timeout_seconds int default 10, is_active bool, last_checked_at, last_status varchar, timestamps)
 - [ ] Migration: `create_uptime_checks_table` (bigint PK auto-increment, monitor_id ulid FK, status_code int nullable, response_time_ms int nullable, is_up bool, error text nullable, checked_at timestamp)
 - [ ] Model: `app/Modules/Observability/Models/UptimeMonitor.php`
@@ -654,6 +711,7 @@
 - [ ] Tests: check execution, down/recovery detection, rollup
 
 ### 9.3 Web Terminal
+
 - [ ] Install xterm.js + xterm-addon-fit + xterm-addon-web-links
 - [ ] Backend: WebSocket endpoint for SSH proxy (Laravel Reverb channel, authenticated)
 - [ ] Service: `WebTerminalService` (open SSH connection to server via stored credentials, bridge WebSocket ↔ SSH stdin/stdout)
@@ -664,27 +722,32 @@
 - [ ] Tests: connection lifecycle, auth verification, audit logging
 
 ### 9.4 Notification Preferences UI
+
 - [ ] UI: notification channels management page (add Slack webhook, Discord webhook, email, custom webhook)
 - [ ] UI: test notification button per channel
 - [ ] UI: notification rules — which events trigger which channels (e.g., "send deploy failures to Slack, all alerts to email")
 - [ ] UI: notification history page with status badges
 
 ### 9.5 Uptime Monitoring UI
+
 - [ ] UI: uptime monitors list (name, URL, current status, uptime percentage, last response time)
 - [ ] UI: uptime monitor detail — response time chart, uptime percentage over time, incident history
 - [ ] UI: create/edit monitor form
 - [ ] UI: dashboard uptime widget — small status indicators for each monitor
 
 ### 9.6 Phase 9 Completion
+
 - [ ] All tests passing, pint passing
 - [ ] Update CLAUDE.md + this roadmap
 
 ---
 
 ## Phase 10: Server Virtualization (LXC Containers)
+
 **Status: NOT STARTED**
 
 ### 10.1 Host Server Model
+
 - [ ] Migration: add `parent_server_id` (ulid FK nullable, self-referencing) to `servers` table
 - [ ] Migration: add `resource_allocation` (jsonb nullable) to `servers` table — `{"cpus": 8, "memory_mb": 16384, "disk_gb": 50}`
 - [ ] Migration: add `container_id` (varchar nullable) to `servers` table — LXC container name on host
@@ -696,20 +759,22 @@
 - [ ] Tests: model relationships, scopes, resource allocation validation
 
 ### 10.2 LXC Management Service
+
 - [ ] Service: `app/Modules/Infrastructure/Services/LxcManager.php`
-  - `createContainer(Server $host, CreateContainerData $data): string` — returns container ID
-  - `destroyContainer(Server $host, string $containerId): void`
-  - `resizeContainer(Server $host, string $containerId, ResourceAllocation $data): void`
-  - `startContainer(Server $host, string $containerId): void`
-  - `stopContainer(Server $host, string $containerId): void`
-  - `listContainers(Server $host): array`
-  - `getContainerStatus(Server $host, string $containerId): array`
+    - `createContainer(Server $host, CreateContainerData $data): string` — returns container ID
+    - `destroyContainer(Server $host, string $containerId): void`
+    - `resizeContainer(Server $host, string $containerId, ResourceAllocation $data): void`
+    - `startContainer(Server $host, string $containerId): void`
+    - `stopContainer(Server $host, string $containerId): void`
+    - `listContainers(Server $host): array`
+    - `getContainerStatus(Server $host, string $containerId): array`
 - [ ] DTO: `CreateContainerData` (name, cpus, memory_mb, disk_gb, os_template default ubuntu-24.04)
 - [ ] DTO: `ResourceAllocation` (cpus, memory_mb, disk_gb)
 - [ ] All operations execute via agent commands on the host server
 - [ ] Tests: mock agent commands, validate LXC command generation
 
 ### 10.3 Container Lifecycle Actions
+
 - [ ] Action: `CreateVirtualServer` — validate resource availability on host, send LXC create command via agent, create server record with parent_server_id, bootstrap agent inside container
 - [ ] Action: `ResizeVirtualServer` — validate new allocation fits, send LXC resize command, update resource_allocation
 - [ ] Action: `DestroyVirtualServer` — drain from clusters, send LXC destroy command, soft-delete server record
@@ -720,6 +785,7 @@
 - [ ] Tests: full lifecycle, resource limit enforcement, migration flow
 
 ### 10.4 Agent LXC Commands
+
 - [ ] Define `lxc_create` command type — payload: container name, OS template, resource limits, network config
 - [ ] Define `lxc_destroy` command type — payload: container ID
 - [ ] Define `lxc_resize` command type — payload: container ID, new limits
@@ -729,6 +795,7 @@
 - [ ] Host agent must have LXC/LXD installed and configured during bootstrap
 
 ### 10.5 Container Networking
+
 - [ ] Agent: configure LXC bridge networking — each container gets its own IP on a private bridge
 - [ ] Agent: set up NAT/port forwarding for containers that need public access
 - [ ] Agent: configure firewall rules between containers on the same host (isolation by default)
@@ -737,6 +804,7 @@
 - [ ] Tests: network isolation verification, inter-container communication
 
 ### 10.6 Resource Monitoring for Containers
+
 - [ ] Agent: report per-container resource usage in heartbeat (LXC provides cgroup stats)
 - [ ] Update `RecordServerMetrics` action to handle container metrics from host agent heartbeat
 - [ ] UI: host server detail shows resource breakdown — total capacity, per-container allocation, per-container actual usage
@@ -744,12 +812,14 @@
 - [ ] Alert rule support: alert when a container approaches its resource limit
 
 ### 10.7 Host Bootstrap Enhancement
+
 - [ ] Update `ServerBootstrapper` to optionally install LXC/LXD on host servers marked for virtualization
 - [ ] LXD init with storage pool (ZFS or dir backend), network bridge, default profile
 - [ ] Pre-configure OS image cache (ubuntu:24.04) so container creation is fast
 - [ ] Support enabling virtualization on existing active servers (install LXC without disrupting running services)
 
 ### 10.8 Virtual Server UI
+
 - [ ] UI: host server detail — "Virtual Servers" section showing containers with resource bars (CPU, memory, disk usage vs allocation)
 - [ ] UI: create virtual server form — select host, name, OS template, resource sliders (CPU cores, memory GB, disk GB) with validation against available capacity
 - [ ] UI: resize virtual server modal — adjust resource sliders, show impact on host available capacity
@@ -758,6 +828,7 @@
 - [ ] UI: migrate container modal — select destination host, show resource compatibility
 
 ### 10.9 Phase 10 Completion
+
 - [ ] Integration test: create host → enable virtualization → create containers → bootstrap agents → assign to cluster → deploy app
 - [ ] Integration test: resize container, verify resource limits applied
 - [ ] Integration test: destroy container, verify cleanup

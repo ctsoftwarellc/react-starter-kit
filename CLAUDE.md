@@ -20,16 +20,16 @@ Modular monolith. 8 domain modules under `app/Modules/`, HTTP layer in standard 
 
 ### Modules
 
-| Module | Purpose |
-|--------|---------|
-| `Infrastructure` | Servers, clusters, providers, agents, SSH bootstrap |
-| `AppPlatform` | Projects, applications, environments, env vars, secrets, git connections |
-| `Pipeline` | CI/CD pipelines, runs, jobs, runners, artifacts, webhooks |
-| `Deployment` | Releases, deployments, deployment steps, health checks, rollback |
-| `Networking` | Domains, certificates, Caddy proxy config |
-| `ServiceManagement` | Database/cache provisioning, process management (post-MVP) |
-| `Observability` | Server metrics, alert rules, alerts (post-MVP) |
-| `Operations` | Audit logs, backups, retention |
+| Module              | Purpose                                                                  |
+| ------------------- | ------------------------------------------------------------------------ |
+| `Infrastructure`    | Servers, clusters, providers, agents, SSH bootstrap                      |
+| `AppPlatform`       | Projects, applications, environments, env vars, secrets, git connections |
+| `Pipeline`          | CI/CD pipelines, runs, jobs, runners, artifacts, webhooks                |
+| `Deployment`        | Releases, deployments, deployment steps, health checks, rollback         |
+| `Networking`        | Domains, certificates, Caddy proxy config                                |
+| `ServiceManagement` | Database/cache provisioning, process management (post-MVP)               |
+| `Observability`     | Server metrics, alert rules, alerts (post-MVP)                           |
+| `Operations`        | Audit logs, backups, retention                                           |
 
 ### Module Structure
 
@@ -138,6 +138,7 @@ class Server extends Model
 ```
 
 **Model rules:**
+
 - Define relationships, scopes, casts, accessors
 - NO business logic in models
 - Always set `protected $guarded = []` (validation happens in FormRequests)
@@ -174,6 +175,7 @@ class RegisterServer
 ```
 
 **Action rules:**
+
 - Wrap multi-model mutations in `DB::transaction()`
 - Dispatch events for cross-module side effects
 - Return the created/modified resource
@@ -223,6 +225,7 @@ class BootstrapServer implements ShouldQueue
 ```
 
 **Job rules:**
+
 - Jobs call Actions, they don't contain business logic
 - Must be idempotent (safe to retry)
 - Must handle failure (mark resource as failed)
@@ -249,6 +252,7 @@ class ServerController extends Controller
 ```
 
 **Controller rules:**
+
 - Max one Action per method
 - No business logic, no DB queries, no conditionals beyond auth
 - API controllers return API Resources
@@ -298,6 +302,7 @@ class ServerResource extends JsonResource
 ### 10. Tests
 
 Every feature needs:
+
 - **Unit test** for the Action: `tests/Unit/Modules/{Module}/Actions/{Action}Test.php`
 - **Feature test** for the API endpoint: `tests/Feature/Api/{Module}/{Controller}Test.php`
 
@@ -342,14 +347,14 @@ class ServerFactory extends Factory
 
 ## Route Files
 
-| File | Purpose | Auth |
-|------|---------|------|
-| `routes/web.php` | Inertia pages | Session (Fortify) |
-| `routes/api.php` | User-facing API | Bearer token or session |
-| `routes/agent.php` | Node agent endpoints | Per-server token |
-| `routes/runner.php` | CI runner endpoints | Per-runner token |
-| `routes/webhooks.php` | Git provider webhooks | HMAC signature |
-| `routes/settings.php` | Profile/security settings | Session |
+| File                  | Purpose                   | Auth                    |
+| --------------------- | ------------------------- | ----------------------- |
+| `routes/web.php`      | Inertia pages             | Session (Fortify)       |
+| `routes/api.php`      | User-facing API           | Bearer token or session |
+| `routes/agent.php`    | Node agent endpoints      | Per-server token        |
+| `routes/runner.php`   | CI runner endpoints       | Per-runner token        |
+| `routes/webhooks.php` | Git provider webhooks     | HMAC signature          |
+| `routes/settings.php` | Profile/security settings | Session                 |
 
 ## Key Patterns
 
@@ -422,19 +427,19 @@ Fix style: `./vendor/bin/pint`
 
 ## Implementation Phases
 
-| Phase | Focus | Status |
-|-------|-------|--------|
-| 0 | Foundation: PostgreSQL, Redis, S3, module structure, traits, config | **Done** |
-| 1 | Personal access tokens, SSH keys, projects, audit logs | **Done** |
-| 2 | Providers, servers, clusters, SSH bootstrap, agent API | **Done** |
-| 3 | Git connections, applications, environments, secrets, webhooks | Pending |
-| 4 | Pipelines, pipeline runs/jobs, runners, artifacts, log streaming | Pending |
-| 5 | Releases, deployments, rolling deploy, health checks, rollback | Pending |
-| 6 | Domains, certificates, Caddy config, backups, dashboard polish | Pending |
-| 7 | Server metrics, alert rules, alerts, monitoring dashboard | Pending |
-| 8 | Structured log storage, full-text search, CloudWatch-style log viewer, real-time tailing | Pending |
-| 9 | Notifications (Slack/Discord/email/webhook), uptime monitoring, web terminal | Pending |
-| 10 | Server virtualization — LXC containers, resource splitting, container networking | Pending |
+| Phase | Focus                                                                                    | Status   |
+| ----- | ---------------------------------------------------------------------------------------- | -------- |
+| 0     | Foundation: PostgreSQL, Redis, S3, module structure, traits, config                      | **Done** |
+| 1     | Personal access tokens, SSH keys, projects, audit logs                                   | **Done** |
+| 2     | Providers, servers, clusters, SSH bootstrap, agent API                                   | **Done** |
+| 3     | Git connections, applications, environments, secrets, webhooks                           | **Done** |
+| 4     | Pipelines, pipeline runs/jobs, runners, artifacts, log streaming                         | Pending  |
+| 5     | Releases, deployments, rolling deploy, health checks, rollback                           | Pending  |
+| 6     | Domains, certificates, Caddy config, backups, dashboard polish                           | Pending  |
+| 7     | Server metrics, alert rules, alerts, monitoring dashboard                                | Pending  |
+| 8     | Structured log storage, full-text search, CloudWatch-style log viewer, real-time tailing | Pending  |
+| 9     | Notifications (Slack/Discord/email/webhook), uptime monitoring, web terminal             | Pending  |
+| 10    | Server virtualization — LXC containers, resource splitting, container networking         | Pending  |
 
 See `.planning/ROADMAP.md` for granular task tracking per phase.
 See `.planning/architecture.md` for full details on tables, schemas, state machines, API endpoints, and UI screens.
@@ -449,14 +454,14 @@ To build a phase, run the master orchestrator:
 
 This runs 6 stages sequentially via subagents:
 
-| Stage | Skill | What it does |
-|-------|-------|-------------|
-| 1 | `/pipeline-plan` | Reads architecture docs, produces a file-by-file implementation plan |
-| 2 | `/pipeline-backend` | Creates migrations, enums, models, actions, events, jobs, services, factories |
-| 3 | `/pipeline-frontend` | Creates controllers, form requests, resources, routes, Inertia pages |
-| 4 | `/pipeline-validate` | Checks all code against architecture spec, reports violations |
-| 5 | `/pipeline-test` | Writes unit tests, feature tests, contract tests, runs them |
-| 6 | `/pipeline-docs` | Updates ROADMAP.md checkboxes, CLAUDE.md phase status, cleans up |
+| Stage | Skill                | What it does                                                                  |
+| ----- | -------------------- | ----------------------------------------------------------------------------- |
+| 1     | `/pipeline-plan`     | Reads architecture docs, produces a file-by-file implementation plan          |
+| 2     | `/pipeline-backend`  | Creates migrations, enums, models, actions, events, jobs, services, factories |
+| 3     | `/pipeline-frontend` | Creates controllers, form requests, resources, routes, Inertia pages          |
+| 4     | `/pipeline-validate` | Checks all code against architecture spec, reports violations                 |
+| 5     | `/pipeline-test`     | Writes unit tests, feature tests, contract tests, runs them                   |
+| 6     | `/pipeline-docs`     | Updates ROADMAP.md checkboxes, CLAUDE.md phase status, cleans up              |
 
 Each stage skill can also be invoked standalone: `/pipeline-backend 2` runs only the backend stage for Phase 2.
 

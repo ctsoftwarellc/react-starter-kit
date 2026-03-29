@@ -89,17 +89,13 @@ class EnvironmentWebController extends Controller
 
     public function updateVariable(SetEnvironmentVariableRequest $request, Environment $environment, EnvironmentVariable $variable): RedirectResponse
     {
-        abort_if($variable->environment_id !== $environment->id, 404);
-
-        (new SetEnvironmentVariable)->execute($environment, SetEnvironmentVariableData::from($request->validated()));
+        (new SetEnvironmentVariable)->execute($environment, SetEnvironmentVariableData::from($request->validated()), $variable);
 
         return back();
     }
 
     public function destroyVariable(Environment $environment, EnvironmentVariable $variable): RedirectResponse
     {
-        abort_if($variable->environment_id !== $environment->id, 404);
-
         (new DeleteEnvironmentVariable)->execute($variable);
 
         return back();
@@ -114,8 +110,6 @@ class EnvironmentWebController extends Controller
 
     public function updateSecret(UpdateSecretRequest $request, Environment $environment, Secret $secret): RedirectResponse
     {
-        abort_if($secret->environment_id !== $environment->id, 404);
-
         (new UpdateSecret)->execute($secret, UpdateSecretData::from($request->validated()));
 
         return back();
@@ -123,8 +117,6 @@ class EnvironmentWebController extends Controller
 
     public function destroySecret(Environment $environment, Secret $secret): RedirectResponse
     {
-        abort_if($secret->environment_id !== $environment->id, 404);
-
         (new DeleteSecret)->execute($secret);
 
         return back();
@@ -132,8 +124,6 @@ class EnvironmentWebController extends Controller
 
     public function revealSecret(Environment $environment, Secret $secret): JsonResponse
     {
-        abort_if($secret->environment_id !== $environment->id, 404);
-
         return response()->json([
             'value' => (new RevealSecret)->execute($secret),
         ]);
@@ -148,8 +138,6 @@ class EnvironmentWebController extends Controller
 
     public function updateProcess(ProcessDefinitionRequest $request, Environment $environment, ProcessDefinition $processDefinition): RedirectResponse
     {
-        abort_if($processDefinition->environment_id !== $environment->id, 404);
-
         (new UpdateProcessDefinition)->execute($processDefinition, ProcessDefinitionData::from($request->validated()));
 
         return back();
@@ -157,8 +145,6 @@ class EnvironmentWebController extends Controller
 
     public function destroyProcess(Environment $environment, ProcessDefinition $processDefinition): RedirectResponse
     {
-        abort_if($processDefinition->environment_id !== $environment->id, 404);
-
         (new DeleteProcessDefinition)->execute($processDefinition);
 
         return back();

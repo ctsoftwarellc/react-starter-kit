@@ -18,16 +18,19 @@ class SetupWebhook
     public function execute(Application $application, GitProvider $provider = GitProvider::Github): Webhook
     {
         $webhook = DB::transaction(function () use ($application, $provider) {
-            return Webhook::firstOrCreate(
-                [
-                    'application_id' => $application->id,
-                    'provider' => $provider->value,
-                ],
-                [
-                    'secret' => Str::random(40),
-                    'is_active' => true,
-                ],
-            );
+            $webhook = Webhook::firstOrNew([
+                'application_id' => $application->id,
+                'provider' => $provider->value,
+            ]);
+
+            if (! $webhook->exists) {
+                $webhook->secret = Str::random(40);
+            }
+
+            $webhook->is_active = true;
+            $webhook->save();
+
+            return $webhook;
         });
 
         if (
