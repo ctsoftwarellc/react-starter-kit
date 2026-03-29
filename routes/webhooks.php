@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Pipeline\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,5 +14,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('webhooks')->group(function () {
-    // POST   /webhooks/{application}/{provider}
+    Route::post('{application}/{provider}', [WebhookController::class, 'handle'])
+        ->middleware('webhook.signature')
+        ->name('webhooks.handle');
 });

@@ -220,7 +220,15 @@
 - [ ] Controller, FormRequests, Resources
 - [ ] Factory
 - [ ] Tests
-- [ ] UI: environment list in app detail, environment detail page
+- [ ] UI: environment list in app detail
+- [ ] UI: environment detail page (Laravel Cloud-style layout):
+  - Breadcrumb: Project > App > Environment
+  - Tab bar: Environment, Deployments, Commands, Logs
+  - Header: app icon, name · environment, GitHub repo link, branch name, Deploy + Visit buttons
+  - Left panel: Network card (proxy status, SSL status, firewall), Domains card (status dots, + add domain)
+  - Right panel: service provisioning cards (Add database, Add cache) with picker modals
+  - Process definitions section with worker/scheduler management
+  - Cluster assignment section (which cluster runs web vs worker processes)
 
 ### 3.4 Environment Variables
 - [ ] Migration: `create_environment_variables_table`
@@ -255,11 +263,17 @@
 - [ ] Service: `CacheProvisioner` interface with `RedisProvisioner`
 - [ ] Support db-role nodes for dedicated database servers
 - [ ] Support cache-role nodes for dedicated cache servers
+- [ ] Migration: `create_storage_buckets_table` (ulid PK, name, provider varchar, region varchar, access_key encrypted, secret_key encrypted, bucket_name, timestamps)
+- [ ] Model: `StorageBucket.php`
+- [ ] Action: `ProvisionStorageBucket`, `DeleteStorageBucket`, `RotateStorageCredentials`
+- [ ] Action: `BindStorageToEnvironment`, `UnbindStorageFromEnvironment`
 - [ ] Store generated service credentials as secrets automatically
 - [ ] Controller, FormRequests, Resources
-- [ ] Tests: engine selection, provisioning flow, credential rotation, environment binding
-- [ ] UI: choose database engine per environment or dedicated client stack
-- [ ] UI: choose cache engine and bind/unbind services from environments
+- [ ] Tests: engine selection, provisioning flow, credential rotation, environment binding, storage provisioning
+- [ ] UI: service provisioning cards on environment detail (Add database, Add cache, Add bucket) with picker modals
+- [ ] UI: database cluster picker modal (select existing or create new, show engine version badge)
+- [ ] UI: cache picker modal (select existing or create new)
+- [ ] UI: storage bucket picker modal (select existing or create new)
 
 ### 3.8 Webhooks
 - [ ] Migration: `create_webhooks_table`
@@ -408,11 +422,24 @@
 - [ ] Define `rollback` command type
 - [ ] Agent contract test: rollback command
 
-### 5.6 Migration: add active_release_id to environments
+### 5.6 Remote Commands (Commands Tab)
+- [ ] Migration: `create_remote_commands_table` (ulid PK, environment_id FK, server_id FK nullable, command text, status varchar, output text nullable, exit_code int nullable, started_at, finished_at, created_at)
+- [ ] Model: `app/Modules/Deployment/Models/RemoteCommand.php`
+- [ ] Enum: `RemoteCommandStatus` (pending, running, succeeded, failed, timed_out)
+- [ ] Action: `ExecuteRemoteCommand` (dispatch command to environment's cluster nodes via agent command system, collect output)
+- [ ] Predefined command templates: run migrations, clear cache, restart workers, artisan tinker, custom command
+- [ ] Controller: `RemoteCommandController` (store — execute command, index — command history, show — command output)
+- [ ] FormRequest: `ExecuteRemoteCommandRequest` (validate command, sanitize input)
+- [ ] Event: `RemoteCommandExecuted` (audit logged)
+- [ ] Tests: command dispatch, output collection, timeout handling
+- [ ] UI: Commands tab on environment detail — command history list, execute command form with template picker, live output display
+- [ ] Security: audit log every command execution, restrict to safe commands by default with opt-in for arbitrary shell
+
+### 5.7 Migration: add active_release_id to environments
 - [ ] Migration: `add_active_release_to_environments_table`
 - [ ] Update Environment model relationship
 
-### 5.7 Phase 5 Completion
+### 5.8 Phase 5 Completion
 - [ ] Integration test: full deployment workflow (create release → deploy → health check → activate)
 - [ ] Integration test: rollback workflow (deploy → fail → rollback)
 - [ ] All tests passing, pint passing
@@ -497,24 +524,266 @@
 
 ---
 
+## Phase 7: Observability & Monitoring
+**Status: NOT STARTED**
+
+### 7.1 Server Metrics Collection
+- [ ] Migration: `create_server_metrics_table` (bigint PK auto-increment, server_id ulid FK, cpu_percent, memory_percent, disk_percent, load_avg_1m, load_avg_5m, network_rx_bytes, network_tx_bytes, recorded_at timestamp)
+- [ ] Index: (server_id, recorded_at DESC)
+- [ ] Model: `app/Modules/Observability/Models/ServerMetric.php` (bigint PK, no HasUlid, belongsTo Server)
+- [ ] Update agent heartbeat handler to persist metrics to `server_metrics` table (heartbeat already sends cpu/mem/disk/load data)
+- [ ] Action: `RecordServerMetrics` (store metrics from heartbeat payload)
+- [ ] Job: `RollupServerMetrics` (scheduled hourly — downsample 1-min data older than 24h to 5-min, 5-min data older than 7d to 1-hour, drop data older than 90d)
+- [ ] Controller: `ServerMetricController` (index — query by server_id, time range, resolution)
+- [ ] Resource: `ServerMetricResource`
+- [ ] Tests: metric recording, rollup logic, API filtering by time range
+
+### 7.2 Alert Rules & Alerts
+- [ ] Migration: `create_alert_rules_table` (ulid PK, name, target_type enum server/cluster, target_id nullable, metric varchar, operator varchar, threshold decimal, duration_seconds int, severity varchar, notification_channels jsonb, is_active bool, timestamps)
+- [ ] Migration: `create_alerts_table` (ulid PK, alert_rule_id FK, target_type, target_id, metric, value decimal, threshold decimal, severity varchar, status varchar, acknowledged_at nullable, resolved_at nullable, created_at, updated_at)
+- [ ] Model: `app/Modules/Observability/Models/AlertRule.php`
+- [ ] Model: `app/Modules/Observability/Models/Alert.php` (HasStateMachine)
+- [ ] Enum: `AlertSeverity` (info, warning, critical)
+- [ ] Enum: `AlertStatus` (firing, acknowledged, resolved)
+- [ ] Action: `CreateAlertRule`, `UpdateAlertRule`, `DeleteAlertRule`
+- [ ] Action: `EvaluateAlertRules` (check recent metrics against thresholds, fire alerts)
+- [ ] Action: `AcknowledgeAlert`, `ResolveAlert`
+- [ ] Event: `AlertFired`, `AlertResolved`
+- [ ] Job: `EvaluateAlertRules` (scheduled every minute — evaluate all active rules against recent metrics)
+- [ ] Controller: `AlertRuleController` (CRUD), `AlertController` (index, show, acknowledge, resolve)
+- [ ] FormRequests, Resources
+- [ ] Tests: rule evaluation logic, threshold breach detection, alert lifecycle
+
+### 7.3 Server Metrics Dashboard
+- [ ] UI: server detail metrics page — time-range selector (1h, 6h, 24h, 7d, 30d), charts for CPU, memory, disk, load, network (use Recharts)
+- [ ] UI: dashboard health grid — colored tiles (green/yellow/red) per server showing current CPU/memory/disk at a glance, click to drill into server detail
+- [ ] UI: dashboard deployment timeline — last 24h of deploys across all environments, success/failure color-coded
+- [ ] UI: dashboard active alerts banner — top of page, dismissible, link to alert detail
+- [ ] UI: cluster overview — aggregate resource utilization sparklines for each cluster
+- [ ] UI: alert rules management page (CRUD)
+- [ ] UI: alerts list with severity badges, acknowledge/resolve actions
+
+### 7.4 Phase 7 Completion
+- [ ] All tests passing, pint passing
+- [ ] Update CLAUDE.md + this roadmap
+
+---
+
+## Phase 8: Log Management & Search
+**Status: NOT STARTED**
+
+### 8.1 Structured Log Storage
+- [ ] Update `LogStreamer` service to store logs as structured JSONL (timestamp, level, message, source, metadata) instead of raw text
+- [ ] Migration: `create_log_indexes_table` (ulid PK, source_type varchar (pipeline_job, deployment, server), source_id ulid, s3_path varchar, byte_offset_start bigint, byte_offset_end bigint, line_count int, min_timestamp, max_timestamp, created_at)
+- [ ] Model: `app/Modules/Observability/Models/LogIndex.php`
+- [ ] Action: `AppendLogChunk` (write JSONL to S3, create/update log index entry)
+- [ ] Action: `QueryLogs` (resolve S3 chunks by time range, stream and filter)
+- [ ] Service: `LogSearchService` — PostgreSQL full-text search across log content with tsvector indexing on a `log_lines` summary table, or optional Meilisearch integration for high-volume search
+- [ ] Tests: JSONL format, index creation, search queries
+
+### 8.2 Log Viewer API
+- [ ] Controller: `LogController` (index — paginated, search, stream)
+- [ ] API: `GET /api/v1/logs?source_type=pipeline_job&source_id={id}&q=error&level=error&after=...&before=...`
+- [ ] Cursor-based pagination for log lines (not offset-based — logs can be huge)
+- [ ] Support regex search in query parameter
+- [ ] Support level filtering (debug, info, warning, error)
+- [ ] FormRequest: `QueryLogsRequest` (validate source_type, date ranges, pagination cursor)
+- [ ] Resource: `LogEntryResource`
+- [ ] Tests: pagination, search, level filtering, time range queries
+
+### 8.3 Real-Time Log Tailing
+- [ ] Install and configure Laravel Reverb for WebSocket support
+- [ ] Broadcasting: `LogChunkAppended` event broadcast on private channel per source (e.g., `log.pipeline_job.{id}`)
+- [ ] Update `AppendLogChunk` action to broadcast new chunks
+- [ ] Frontend WebSocket client for live log following
+- [ ] Graceful fallback to polling if WebSocket unavailable
+- [ ] Tests: broadcast event shape, channel authorization
+
+### 8.4 CloudWatch-Style Log Viewer UI
+- [ ] UI: log viewer component with virtual scrolling (react-window) — render only visible lines, fetch pages on scroll
+- [ ] UI: search bar with regex support, highlight matches, jump-to-next/prev match
+- [ ] UI: level filter toggles (debug, info, warning, error) with color-coded lines
+- [ ] UI: time range picker (absolute and relative — "last 1h", "last 24h", custom range)
+- [ ] UI: collapsible log groups by pipeline stage or deployment step
+- [ ] UI: download full log as file button
+- [ ] UI: shareable permalink to specific line ranges (e.g., `/logs/pipeline-job/{id}?line=142-158`)
+- [ ] UI: auto-scroll toggle for live tail mode (scroll locked to bottom while tailing, unlock on manual scroll up)
+- [ ] Wire into pipeline job detail, deployment detail, and server detail pages
+
+### 8.5 Log Retention
+- [ ] Action: `ApplyLogRetention` (delete S3 objects and log_indexes older than configured retention)
+- [ ] Job: `CleanupExpiredLogs` (scheduled daily)
+- [ ] Config: `config/helm.php` log retention settings (default 30 days, configurable per source type)
+- [ ] Tests: retention policy application
+
+### 8.6 Phase 8 Completion
+- [ ] All tests passing, pint passing
+- [ ] Update CLAUDE.md + this roadmap
+
+---
+
+## Phase 9: Notifications & Developer Experience
+**Status: NOT STARTED**
+
+### 9.1 Notification System
+- [ ] Migration: `create_notification_channels_table` (ulid PK, type varchar (email, slack, discord, webhook), name, config encrypted jsonb, is_active bool, timestamps)
+- [ ] Migration: `create_notifications_table` (ulid PK, channel_id FK, type varchar, subject, body text, metadata jsonb, status varchar (pending, sent, failed), sent_at nullable, created_at)
+- [ ] Model: `app/Modules/Observability/Models/NotificationChannel.php`
+- [ ] Model: `app/Modules/Observability/Models/Notification.php`
+- [ ] Enum: `NotificationChannelType` (email, slack, discord, webhook)
+- [ ] Service: `NotificationDispatcher` (route notification to correct channel handler)
+- [ ] Service: `SlackNotifier`, `DiscordNotifier`, `EmailNotifier`, `WebhookNotifier`
+- [ ] Action: `CreateNotificationChannel`, `UpdateNotificationChannel`, `DeleteNotificationChannel`, `TestNotificationChannel`
+- [ ] Action: `SendNotification` (create record, dispatch to channel handler)
+- [ ] Listener: subscribe to `AlertFired`, `AlertResolved`, `DeploymentFailed`, `DeploymentCompleted`, `PipelineRunCompleted` — dispatch notifications based on configured rules
+- [ ] Job: `DispatchNotification` (async send via queue)
+- [ ] Controller: `NotificationChannelController` (CRUD + test), `NotificationController` (index — history)
+- [ ] Tests: channel CRUD, dispatch routing, individual notifier output
+
+### 9.2 Uptime Monitoring
+- [ ] Migration: `create_uptime_monitors_table` (ulid PK, name, url varchar, method varchar default GET, expected_status int default 200, interval_seconds int default 60, timeout_seconds int default 10, is_active bool, last_checked_at, last_status varchar, timestamps)
+- [ ] Migration: `create_uptime_checks_table` (bigint PK auto-increment, monitor_id ulid FK, status_code int nullable, response_time_ms int nullable, is_up bool, error text nullable, checked_at timestamp)
+- [ ] Model: `app/Modules/Observability/Models/UptimeMonitor.php`
+- [ ] Model: `app/Modules/Observability/Models/UptimeCheck.php` (bigint PK, no HasUlid — high volume)
+- [ ] Action: `CreateUptimeMonitor`, `UpdateUptimeMonitor`, `DeleteUptimeMonitor`
+- [ ] Action: `RunUptimeCheck` (HTTP request to URL, record response time and status)
+- [ ] Job: `RunUptimeChecks` (scheduled every minute — check all active monitors whose interval has elapsed)
+- [ ] Job: `RollupUptimeChecks` (scheduled daily — aggregate into hourly summaries, apply retention)
+- [ ] Event: `UptimeMonitorDown`, `UptimeMonitorRecovered` (triggers notifications)
+- [ ] Controller: `UptimeMonitorController` (CRUD + checks history)
+- [ ] Tests: check execution, down/recovery detection, rollup
+
+### 9.3 Web Terminal
+- [ ] Install xterm.js + xterm-addon-fit + xterm-addon-web-links
+- [ ] Backend: WebSocket endpoint for SSH proxy (Laravel Reverb channel, authenticated)
+- [ ] Service: `WebTerminalService` (open SSH connection to server via stored credentials, bridge WebSocket ↔ SSH stdin/stdout)
+- [ ] Action: `OpenWebTerminal` (validate server is active, audit log the session)
+- [ ] UI: terminal modal/page with xterm.js, server selector, connection status indicator
+- [ ] UI: one-click "SSH" button on server detail page and server list
+- [ ] Security: audit log all terminal sessions (open, close, duration), require active server status
+- [ ] Tests: connection lifecycle, auth verification, audit logging
+
+### 9.4 Notification Preferences UI
+- [ ] UI: notification channels management page (add Slack webhook, Discord webhook, email, custom webhook)
+- [ ] UI: test notification button per channel
+- [ ] UI: notification rules — which events trigger which channels (e.g., "send deploy failures to Slack, all alerts to email")
+- [ ] UI: notification history page with status badges
+
+### 9.5 Uptime Monitoring UI
+- [ ] UI: uptime monitors list (name, URL, current status, uptime percentage, last response time)
+- [ ] UI: uptime monitor detail — response time chart, uptime percentage over time, incident history
+- [ ] UI: create/edit monitor form
+- [ ] UI: dashboard uptime widget — small status indicators for each monitor
+
+### 9.6 Phase 9 Completion
+- [ ] All tests passing, pint passing
+- [ ] Update CLAUDE.md + this roadmap
+
+---
+
+## Phase 10: Server Virtualization (LXC Containers)
+**Status: NOT STARTED**
+
+### 10.1 Host Server Model
+- [ ] Migration: add `parent_server_id` (ulid FK nullable, self-referencing) to `servers` table
+- [ ] Migration: add `resource_allocation` (jsonb nullable) to `servers` table — `{"cpus": 8, "memory_mb": 16384, "disk_gb": 50}`
+- [ ] Migration: add `container_id` (varchar nullable) to `servers` table — LXC container name on host
+- [ ] Migration: add `virtualization_enabled` (bool default false) to `servers` table
+- [ ] Update Server model: `children()` hasMany(Server, 'parent_server_id'), `parentServer()` belongsTo(Server, 'parent_server_id')
+- [ ] Scope: `scopeHosts()` — servers with no parent (physical/VPS), `scopeContainers()` — servers with a parent
+- [ ] Scope: `scopeOnHost($hostId)` — all containers on a given host
+- [ ] Validation: container resource_allocation cannot exceed host's total resources minus other containers' allocations
+- [ ] Tests: model relationships, scopes, resource allocation validation
+
+### 10.2 LXC Management Service
+- [ ] Service: `app/Modules/Infrastructure/Services/LxcManager.php`
+  - `createContainer(Server $host, CreateContainerData $data): string` — returns container ID
+  - `destroyContainer(Server $host, string $containerId): void`
+  - `resizeContainer(Server $host, string $containerId, ResourceAllocation $data): void`
+  - `startContainer(Server $host, string $containerId): void`
+  - `stopContainer(Server $host, string $containerId): void`
+  - `listContainers(Server $host): array`
+  - `getContainerStatus(Server $host, string $containerId): array`
+- [ ] DTO: `CreateContainerData` (name, cpus, memory_mb, disk_gb, os_template default ubuntu-24.04)
+- [ ] DTO: `ResourceAllocation` (cpus, memory_mb, disk_gb)
+- [ ] All operations execute via agent commands on the host server
+- [ ] Tests: mock agent commands, validate LXC command generation
+
+### 10.3 Container Lifecycle Actions
+- [ ] Action: `CreateVirtualServer` — validate resource availability on host, send LXC create command via agent, create server record with parent_server_id, bootstrap agent inside container
+- [ ] Action: `ResizeVirtualServer` — validate new allocation fits, send LXC resize command, update resource_allocation
+- [ ] Action: `DestroyVirtualServer` — drain from clusters, send LXC destroy command, soft-delete server record
+- [ ] Action: `MigrateVirtualServer` — move container from one host to another (LXC live migration or stop-copy-start)
+- [ ] Job: `CreateVirtualServer` (async — LXC creation + bootstrap can take minutes)
+- [ ] Job: `MigrateVirtualServer` (async)
+- [ ] Event: `VirtualServerCreated`, `VirtualServerResized`, `VirtualServerMigrated`
+- [ ] Tests: full lifecycle, resource limit enforcement, migration flow
+
+### 10.4 Agent LXC Commands
+- [ ] Define `lxc_create` command type — payload: container name, OS template, resource limits, network config
+- [ ] Define `lxc_destroy` command type — payload: container ID
+- [ ] Define `lxc_resize` command type — payload: container ID, new limits
+- [ ] Define `lxc_start` / `lxc_stop` command types
+- [ ] Define `lxc_status` command type — returns container resource usage, state
+- [ ] Agent contract tests for all LXC command types
+- [ ] Host agent must have LXC/LXD installed and configured during bootstrap
+
+### 10.5 Container Networking
+- [ ] Agent: configure LXC bridge networking — each container gets its own IP on a private bridge
+- [ ] Agent: set up NAT/port forwarding for containers that need public access
+- [ ] Agent: configure firewall rules between containers on the same host (isolation by default)
+- [ ] Support private networking between containers on the same host (e.g., web container → db container via private IP)
+- [ ] Store container IPs in server record (`public_ip` for forwarded, `private_ip` for bridge)
+- [ ] Tests: network isolation verification, inter-container communication
+
+### 10.6 Resource Monitoring for Containers
+- [ ] Agent: report per-container resource usage in heartbeat (LXC provides cgroup stats)
+- [ ] Update `RecordServerMetrics` action to handle container metrics from host agent heartbeat
+- [ ] UI: host server detail shows resource breakdown — total capacity, per-container allocation, per-container actual usage
+- [ ] UI: visual resource allocation bar (used / allocated / free) per resource type (CPU, memory, disk)
+- [ ] Alert rule support: alert when a container approaches its resource limit
+
+### 10.7 Host Bootstrap Enhancement
+- [ ] Update `ServerBootstrapper` to optionally install LXC/LXD on host servers marked for virtualization
+- [ ] LXD init with storage pool (ZFS or dir backend), network bridge, default profile
+- [ ] Pre-configure OS image cache (ubuntu:24.04) so container creation is fast
+- [ ] Support enabling virtualization on existing active servers (install LXC without disrupting running services)
+
+### 10.8 Virtual Server UI
+- [ ] UI: host server detail — "Virtual Servers" section showing containers with resource bars (CPU, memory, disk usage vs allocation)
+- [ ] UI: create virtual server form — select host, name, OS template, resource sliders (CPU cores, memory GB, disk GB) with validation against available capacity
+- [ ] UI: resize virtual server modal — adjust resource sliders, show impact on host available capacity
+- [ ] UI: server list — distinguish hosts vs containers with icon/badge, show parent host name for containers
+- [ ] UI: host capacity overview on dashboard — per-host utilization donut charts
+- [ ] UI: migrate container modal — select destination host, show resource compatibility
+
+### 10.9 Phase 10 Completion
+- [ ] Integration test: create host → enable virtualization → create containers → bootstrap agents → assign to cluster → deploy app
+- [ ] Integration test: resize container, verify resource limits applied
+- [ ] Integration test: destroy container, verify cleanup
+- [ ] All tests passing, pint passing
+- [ ] Update CLAUDE.md + this roadmap
+
+---
+
 ## Post-MVP Backlog
 
-These are tracked here for reference but are NOT part of the MVP build.
+These are tracked here for reference but are NOT part of the current build plan.
 
 - [ ] Multiple git providers (GitLab, Bitbucket)
 - [ ] Multiple cloud providers (Hetzner, Vultr, AWS)
 - [ ] Artifact promotion between environments
 - [ ] Blue-green deployments
 - [ ] Canary deployments
-- [ ] Alert rules and notifications
 - [ ] MFA enforcement
 - [ ] Pipeline caching
 - [ ] Pipeline concurrency control
-- [ ] Node metrics dashboard (CPU, memory, disk charts)
 - [ ] Multiple runners / runner pools
 - [ ] Preview environments (auto-create per PR)
 - [ ] Maintenance mode workflows
 - [ ] Scheduled deployments
 - [ ] Manual approval gates in pipelines
-- [ ] Server metrics table + TimescaleDB
-- [ ] WebSocket/SSE for real-time log streaming
+- [ ] Cost tracking — pull monthly spend from cloud provider APIs, display on dashboard
+- [ ] Server comparison view — overlay metrics from multiple servers on same chart
+- [ ] Log analytics — aggregate error rates, trending log patterns
+- [ ] Mobile-responsive dashboard for on-the-go monitoring

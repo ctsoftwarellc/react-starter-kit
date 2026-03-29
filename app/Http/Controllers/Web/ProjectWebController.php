@@ -10,6 +10,7 @@ use App\Modules\AppPlatform\Actions\DeleteProject;
 use App\Modules\AppPlatform\Actions\UpdateProject;
 use App\Modules\AppPlatform\DTOs\CreateProjectData;
 use App\Modules\AppPlatform\DTOs\UpdateProjectData;
+use App\Modules\AppPlatform\Models\Application;
 use App\Modules\AppPlatform\Models\Project;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -42,6 +43,12 @@ class ProjectWebController extends Controller
     {
         return Inertia::render('projects/show', [
             'project' => $project,
+            'applications' => Application::query()
+                ->forProject($project)
+                ->with('gitConnection')
+                ->withCount('environments')
+                ->latest()
+                ->get(),
         ]);
     }
 

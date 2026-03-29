@@ -24,6 +24,72 @@ export type Project = {
     updated_at: string;
 };
 
+export type GitConnection = {
+    id: string;
+    provider: 'github' | 'gitlab' | 'bitbucket';
+    account_name: string;
+    token_expires_at: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Application = {
+    id: string;
+    project_id: string;
+    name: string;
+    slug: string;
+    runtime: 'php' | 'node' | 'python' | 'go';
+    repository_url: string | null;
+    repository_branch: string;
+    git_connection_id: string | null;
+    settings: Record<string, unknown>;
+    project?: Project;
+    git_connection?: GitConnection | null;
+    environments?: Environment[];
+    environments_count?: number;
+    webhooks?: Webhook[];
+    created_at: string;
+    updated_at: string;
+};
+
+export type EnvironmentVariable = {
+    id: string;
+    environment_id: string;
+    key: string;
+    value: string;
+    is_build_arg: boolean;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Secret = {
+    id: string;
+    environment_id: string;
+    key: string;
+    version: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ProcessDefinition = {
+    id: string;
+    environment_id: string;
+    type: 'web' | 'worker' | 'scheduler' | 'custom';
+    command: string;
+    instances: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Webhook = {
+    id: string;
+    application_id: string;
+    provider: 'github' | 'gitlab' | 'bitbucket';
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+};
+
 export type AuditLog = {
     id: string;
     user_id: string;
@@ -77,6 +143,23 @@ export type Cluster = {
     settings: Record<string, unknown>;
     servers?: Server[];
     node_counts?: Record<string, number>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Environment = {
+    id: string;
+    application_id: string;
+    cluster_id: string;
+    name: string;
+    type: 'production' | 'staging' | 'preview';
+    is_auto_deploy: boolean;
+    branch: string | null;
+    application?: Application;
+    cluster?: Cluster;
+    variables?: EnvironmentVariable[];
+    secrets?: Secret[];
+    process_definitions?: ProcessDefinition[];
     created_at: string;
     updated_at: string;
 };

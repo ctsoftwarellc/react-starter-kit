@@ -4,6 +4,7 @@ use App\Http\Middleware\AuthenticateAgent;
 use App\Http\Middleware\AuthenticateWithToken;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\VerifyWebhookSignature;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.token' => AuthenticateWithToken::class,
             'auth.agent' => AuthenticateAgent::class,
+            'webhook.signature' => VerifyWebhookSignature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
