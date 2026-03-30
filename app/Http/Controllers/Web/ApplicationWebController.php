@@ -41,7 +41,15 @@ class ApplicationWebController extends Controller
 
     public function show(Application $application): Response
     {
-        $application->load(['project', 'gitConnection', 'environments.cluster', 'webhooks']);
+        $application->load([
+            'project',
+            'gitConnection',
+            'environments.cluster',
+            'webhooks',
+            'pipelines' => fn ($query) => $query
+                ->with(['runs' => fn ($runQuery) => $runQuery->latestFirst()->with(['environment', 'artifact'])->limit(5)])
+                ->latest(),
+        ]);
 
         return Inertia::render('applications/show', [
             'application' => $application,

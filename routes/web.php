@@ -5,7 +5,9 @@ use App\Http\Controllers\Web\ApplicationWebController;
 use App\Http\Controllers\Web\ClusterWebController;
 use App\Http\Controllers\Web\EnvironmentWebController;
 use App\Http\Controllers\Web\GitConnectionWebController;
+use App\Http\Controllers\Web\PipelineRunWebController;
 use App\Http\Controllers\Web\ProjectWebController;
+use App\Http\Controllers\Web\RunnerWebController;
 use App\Http\Controllers\Web\ServerWebController;
 use App\Http\Controllers\Web\ServiceManagementWebController;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('service-management/storage-buckets/{storageBucket}/rotate-credentials', [ServiceManagementWebController::class, 'rotateStorageBucket'])->name('service-management.storage-buckets.rotate');
         Route::post('environments/{environment}/service-bindings', [ServiceManagementWebController::class, 'storeBinding'])->name('environment-service-bindings.store');
         Route::delete('environments/{environment}/service-bindings/{serviceBinding}', [ServiceManagementWebController::class, 'destroyBinding'])->name('environment-service-bindings.destroy');
+        Route::get('pipeline-runs/{pipelineRun}', [PipelineRunWebController::class, 'show'])->name('pipeline-runs.show');
     });
 
     Route::resource('servers', ServerWebController::class)->only(['index', 'create', 'store', 'show']);
@@ -64,6 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('clusters/{cluster}/nodes/{server}', [ClusterWebController::class, 'removeNode'])->name('clusters.remove-node');
 
     Route::get('activity', [ActivityWebController::class, 'index'])->name('activity.index');
+    Route::get('runners', [RunnerWebController::class, 'index'])->name('runners.index');
 });
 
 require __DIR__.'/settings.php';

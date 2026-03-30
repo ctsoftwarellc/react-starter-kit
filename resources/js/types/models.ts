@@ -46,8 +46,120 @@ export type Application = {
     project?: Project;
     git_connection?: GitConnection | null;
     environments?: Environment[];
+    pipelines?: Pipeline[];
     environments_count?: number;
     webhooks?: Webhook[];
+    created_at: string;
+    updated_at: string;
+};
+
+export type PipelineDefinitionJob = {
+    name: string;
+    commands: string[];
+    environment: Record<string, unknown>;
+    allow_failure: boolean;
+    timeout: number | null;
+};
+
+export type PipelineDefinitionStage = {
+    name: string;
+    jobs: PipelineDefinitionJob[];
+};
+
+export type PipelineDefinition = {
+    artifact: boolean;
+    stages: PipelineDefinitionStage[];
+};
+
+export type Pipeline = {
+    id: string;
+    application_id: string;
+    name: string;
+    definition: PipelineDefinition;
+    is_active: boolean;
+    trigger_branches: string[];
+    trigger_events: string[];
+    application?: Application;
+    runs?: PipelineRun[];
+    created_at: string;
+    updated_at: string;
+};
+
+export type PipelineRun = {
+    id: string;
+    pipeline_id: string;
+    environment_id: string | null;
+    status: string;
+    trigger_type: string;
+    trigger_ref: string | null;
+    trigger_sha: string | null;
+    trigger_actor: string | null;
+    definition_snapshot: PipelineDefinition;
+    duration_seconds?: number | null;
+    pipeline?: Pipeline;
+    environment?: Environment | null;
+    jobs?: PipelineJob[];
+    artifact?: Artifact | null;
+    started_at: string | null;
+    finished_at: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type PipelineJob = {
+    id: string;
+    pipeline_run_id: string;
+    stage: string;
+    name: string;
+    status: string;
+    runner_id: string | null;
+    commands: string[];
+    environment: Record<string, unknown>;
+    log_path: string | null;
+    exit_code: number | null;
+    pipeline_run?: PipelineRun;
+    runner?: Runner | null;
+    started_at: string | null;
+    finished_at: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Artifact = {
+    id: string;
+    pipeline_run_id: string;
+    application_id: string;
+    status: string;
+    storage_path: string | null;
+    content_hash: string | null;
+    size_bytes: number | null;
+    metadata: Record<string, unknown>;
+    pipeline_run?: PipelineRun;
+    application?: Application;
+    created_at: string;
+    updated_at: string;
+};
+
+export type RunnerCurrentJob = {
+    id: string;
+    pipeline_run_id: string;
+    stage: string;
+    name: string;
+    status: string;
+    pipeline?: {
+        id: string | null;
+        name: string | null;
+    } | null;
+};
+
+export type Runner = {
+    id: string;
+    name: string;
+    status: string;
+    platform: string | null;
+    metadata: Record<string, unknown>;
+    last_heartbeat_at: string | null;
+    current_job?: RunnerCurrentJob | null;
     created_at: string;
     updated_at: string;
 };

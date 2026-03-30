@@ -17,6 +17,10 @@ use App\Modules\Infrastructure\Events\ServerBootstrapped;
 use App\Modules\Infrastructure\Events\ServerHealthChanged;
 use App\Modules\Infrastructure\Events\ServerRegistered;
 use App\Modules\Operations\Actions\RecordAuditLog as RecordAuditLogAction;
+use App\Modules\Pipeline\Events\ArtifactCreated;
+use App\Modules\Pipeline\Events\PipelineJobCompleted;
+use App\Modules\Pipeline\Events\PipelineRunCompleted;
+use App\Modules\Pipeline\Events\PipelineRunStarted;
 
 class RecordAuditLog
 {
@@ -35,6 +39,10 @@ class RecordAuditLog
         ServerBootstrapped::class => 'server.bootstrapped',
         ServerHealthChanged::class => 'server.health_changed',
         ClusterTopologyChanged::class => 'cluster.topology_changed',
+        PipelineRunStarted::class => 'pipeline_run.started',
+        PipelineRunCompleted::class => 'pipeline_run.completed',
+        PipelineJobCompleted::class => 'pipeline_job.completed',
+        ArtifactCreated::class => 'artifact.created',
     ];
 
     public function handle(object $event): void
@@ -66,6 +74,9 @@ class RecordAuditLog
             ?? $event->provider
             ?? $event->server
             ?? $event->cluster
+            ?? $event->pipelineRun
+            ?? $event->pipelineJob
+            ?? $event->artifact
             ?? null;
     }
 
@@ -165,6 +176,31 @@ class RecordAuditLog
         if ($event instanceof ClusterTopologyChanged) {
             return [null, [
                 'change_type' => $event->changeType,
+            ]];
+        }
+
+        if ($event instanceof PipelineRunStarted || $event instanceof PipelineRunCompleted) {
+            return [null, [
+                'status' => $event->pipelineRun->status->value,
+                'trigger_type' => $event->pipelineRun->trigger_type->value,
+                'trigger_ref' => $event->pipelineRun->trigger_ref,
+            ]];
+        }
+
+        if ($event instanceof PipelineJobCompleted) {
+            return [null, [
+                'stage' => $event->pipelineJob->stage,
+                'name' => $event->pipelineJob->name,
+                'status' => $event->pipelineJob->status->value,
+                'exit_code' => $event->pipelineJob->exit_code,
+            ]];
+        }
+
+        if ($event instanceof ArtifactCreated) {
+            return [null, [
+                'status' => $event->artifact->status->value,
+                'content_hash' => $event->artifact->content_hash,
+                'size_bytes' => $event->artifact->size_bytes,
             ]];
         }
 

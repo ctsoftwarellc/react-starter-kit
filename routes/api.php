@@ -12,6 +12,11 @@ use App\Http\Controllers\Api\Infrastructure\ProviderController;
 use App\Http\Controllers\Api\Infrastructure\ServerController;
 use App\Http\Controllers\Api\Operations\AuditLogController;
 use App\Http\Controllers\Api\PersonalAccessTokenController;
+use App\Http\Controllers\Api\Pipeline\ArtifactController;
+use App\Http\Controllers\Api\Pipeline\PipelineController;
+use App\Http\Controllers\Api\Pipeline\PipelineJobController;
+use App\Http\Controllers\Api\Pipeline\PipelineRunController;
+use App\Http\Controllers\Api\Pipeline\RunnerController as PipelineRunnerController;
 use App\Http\Controllers\Api\ServiceManagement\CacheInstanceController;
 use App\Http\Controllers\Api\ServiceManagement\DatabaseInstanceController;
 use App\Http\Controllers\Api\ServiceManagement\ServiceBindingController;
@@ -47,6 +52,9 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
         Route::get('applications/{application}', [ApplicationController::class, 'show'])->name('applications.show');
         Route::put('applications/{application}', [ApplicationController::class, 'update'])->name('applications.update');
         Route::delete('applications/{application}', [ApplicationController::class, 'destroy'])->name('applications.destroy');
+        Route::get('applications/{application}/pipelines', [PipelineController::class, 'index'])->name('pipelines.index');
+        Route::post('applications/{application}/pipelines', [PipelineController::class, 'store'])->name('pipelines.store');
+        Route::get('applications/{application}/artifacts', [ArtifactController::class, 'index'])->name('artifacts.index');
         Route::get('applications/{application}/environments', [EnvironmentController::class, 'index'])->name('environments.index');
         Route::post('applications/{application}/environments', [EnvironmentController::class, 'store'])->name('environments.store');
         Route::get('environments/{environment}', [EnvironmentController::class, 'show'])->name('environments.show');
@@ -71,6 +79,21 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
     });
 
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('runners', [PipelineRunnerController::class, 'index'])->name('runners.index');
+    Route::post('runners', [PipelineRunnerController::class, 'store'])->name('runners.store');
+    Route::get('runners/{runner}', [PipelineRunnerController::class, 'show'])->name('runners.show');
+    Route::delete('runners/{runner}', [PipelineRunnerController::class, 'destroy'])->name('runners.destroy');
+    Route::get('pipelines/{pipeline}', [PipelineController::class, 'show'])->name('pipelines.show');
+    Route::put('pipelines/{pipeline}', [PipelineController::class, 'update'])->name('pipelines.update');
+    Route::delete('pipelines/{pipeline}', [PipelineController::class, 'destroy'])->name('pipelines.destroy');
+    Route::post('pipelines/{pipeline}/trigger', [PipelineController::class, 'trigger'])->name('pipelines.trigger');
+    Route::get('pipelines/{pipeline}/runs', [PipelineController::class, 'runs'])->name('pipelines.runs');
+    Route::get('pipeline-runs/{pipelineRun}', [PipelineRunController::class, 'show'])->name('pipeline-runs.show');
+    Route::post('pipeline-runs/{pipelineRun}/cancel', [PipelineRunController::class, 'cancel'])->name('pipeline-runs.cancel');
+    Route::post('pipeline-runs/{pipelineRun}/retry', [PipelineRunController::class, 'retry'])->name('pipeline-runs.retry');
+    Route::get('pipeline-jobs/{pipelineJob}', [PipelineJobController::class, 'show'])->name('pipeline-jobs.show');
+    Route::get('pipeline-jobs/{pipelineJob}/log', [PipelineJobController::class, 'log'])->name('pipeline-jobs.log');
+    Route::get('artifacts/{artifact}', [ArtifactController::class, 'show'])->name('artifacts.show');
 
     // Infrastructure
     Route::apiResource('providers', ProviderController::class);

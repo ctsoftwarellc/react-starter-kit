@@ -21,6 +21,11 @@ use App\Modules\Infrastructure\Events\ServerRegistered;
 use App\Modules\Infrastructure\Listeners\PushSshKeysOnBootstrap;
 use App\Modules\Infrastructure\Listeners\UpdateClusterStatus;
 use App\Modules\Operations\Listeners\RecordAuditLog;
+use App\Modules\Pipeline\Events\ArtifactCreated;
+use App\Modules\Pipeline\Events\PipelineJobCompleted;
+use App\Modules\Pipeline\Events\PipelineRunCompleted;
+use App\Modules\Pipeline\Events\PipelineRunStarted;
+use App\Modules\Pipeline\Listeners\WakeOrchestrator;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -66,11 +71,16 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(ServerBootstrapped::class, [RecordAuditLog::class, 'handle']);
         Event::listen(ServerHealthChanged::class, [RecordAuditLog::class, 'handle']);
         Event::listen(ClusterTopologyChanged::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(PipelineRunStarted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(PipelineRunCompleted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(PipelineJobCompleted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(ArtifactCreated::class, [RecordAuditLog::class, 'handle']);
 
         // Infrastructure events → Domain listeners
         Event::listen(ServerBootstrapped::class, [UpdateClusterStatus::class, 'handle']);
         Event::listen(ServerHealthChanged::class, [UpdateClusterStatus::class, 'handle']);
         Event::listen(ServerBootstrapped::class, [PushSshKeysOnBootstrap::class, 'handle']);
+        Event::listen(PipelineJobCompleted::class, [WakeOrchestrator::class, 'handle']);
 
         // AppPlatform events → Domain listeners
         Event::listen(ApplicationCreated::class, [CreateDefaultEnvironment::class, 'handle']);

@@ -309,76 +309,79 @@
 
 ## Phase 4: Pipelines, Runners, Artifacts
 
-**Status: NOT STARTED**
+**Status: COMPLETE**
 
 ### 4.1 Pipelines
 
-- [ ] Migration: `create_pipelines_table`
-- [ ] Model: `Pipeline.php` (definition jsonb, trigger config)
-- [ ] Action: `CreatePipeline`, `UpdatePipeline`, `DeletePipeline`
-- [ ] Pipeline definition JSON schema validation
-- [ ] Controller, FormRequests, Resources
-- [ ] Tests
-- [ ] UI: pipeline list in app detail, pipeline editor (JSON form builder or raw JSON)
+- [x] Migration: `create_pipelines_table`
+- [x] Model: `Pipeline.php` (definition jsonb, trigger config)
+- [x] Action: `CreatePipeline`, `UpdatePipeline`, `DeletePipeline`
+- [x] Pipeline definition JSON schema validation
+- [x] Controller, FormRequests, Resources
+- [x] Tests
+- [x] UI: pipeline list in app detail, pipeline editor (JSON form builder or raw JSON)
 
 ### 4.2 Pipeline Runs
 
-- [ ] Migration: `create_pipeline_runs_table`
-- [ ] Model: `PipelineRun.php` (HasStateMachine)
-- [ ] Enum: `PipelineRunStatus` (pending, running, succeeded, failed, cancelled, timed_out)
-- [ ] Enum: `TriggerType` (push, tag, pull_request, manual, api, schedule)
-- [ ] State machine transitions (architecture doc Section 7.3)
-- [ ] Action: `TriggerPipelineRun` (snapshot definition, create run + jobs)
-- [ ] Service: `PipelineOrchestrator` (stage sequencing, job status tracking)
-- [ ] Job: `ProcessWebhook` (parse payload, evaluate triggers, create runs)
-- [ ] Job: `OrchestrateRun` (coordinate stages, advance on job completion)
-- [ ] Job: `CheckJobTimeout` (scheduled every minute)
-- [ ] Event: `PipelineRunStarted`, `PipelineRunCompleted`
-- [ ] Controller: trigger, list runs, show run, cancel, retry
-- [ ] Tests: orchestration logic, trigger evaluation, timeout handling
-- [ ] UI: run list with status badges, run detail with stage visualization
+- [x] Migration: `create_pipeline_runs_table`
+- [x] Model: `PipelineRun.php` (HasStateMachine)
+- [x] Enum: `PipelineRunStatus` (pending, running, succeeded, failed, cancelled, timed_out)
+- [x] Enum: `TriggerType` (push, tag, pull_request, manual, api, schedule)
+- [x] State machine transitions (architecture doc Section 7.3)
+- [x] Action: `TriggerPipelineRun` (snapshot definition, create run + jobs)
+- [x] Service: `PipelineOrchestrator` (stage sequencing, job status tracking)
+- [x] Job: `ProcessWebhook` (parse payload, evaluate triggers, create runs)
+- [x] Job: `OrchestrateRun` (coordinate stages, advance on job completion)
+- [x] Job: `CheckJobTimeout` (scheduled every minute)
+- [x] Event: `PipelineRunStarted`, `PipelineRunCompleted`
+- [x] Controller: trigger, list runs, show run, cancel, retry
+- [x] Tests: orchestration logic, trigger evaluation, timeout handling
+- [x] UI: run list with status badges, run detail with stage visualization
 
 ### 4.3 Pipeline Jobs
 
-- [ ] Migration: `create_pipeline_jobs_table`
-- [ ] Model: `PipelineJob.php` (HasStateMachine)
-- [ ] Enum: `PipelineJobStatus` (pending, queued, assigned, running, succeeded, failed, cancelled, timed_out, skipped)
-- [ ] State machine transitions (architecture doc Section 7.4)
-- [ ] Action: `AssignJobToRunner`, `CompletePipelineJob`, `FailPipelineJob`
-- [ ] Event: `PipelineJobCompleted`
-- [ ] Service: `LogStreamer` (append log chunks to S3, read with byte-range)
-- [ ] Controller: show job, stream log
-- [ ] UI: job cards in run detail, click-to-expand log viewer
+- [x] Migration: `create_pipeline_jobs_table`
+- [x] Model: `PipelineJob.php` (HasStateMachine)
+- [x] Enum: `PipelineJobStatus` (pending, queued, assigned, running, succeeded, failed, cancelled, timed_out, skipped)
+- [x] State machine transitions (architecture doc Section 7.4)
+- [x] Action: `AssignJobToRunner`, `CompletePipelineJob`, `FailPipelineJob`
+- [x] Event: `PipelineJobCompleted`
+- [x] Service: `LogStreamer` (append log chunks to S3, read with byte-range)
+- [x] Controller: show job, stream log
+- [x] UI: job cards in run detail, click-to-expand log viewer
 
 ### 4.4 Runners
 
-- [ ] Migration: `create_runners_table`
-- [ ] Model: `Runner.php`
-- [ ] Enum: `RunnerStatus` (online, offline, busy, draining)
-- [ ] Action: `RegisterRunner` (generate token, return plaintext once)
-- [ ] Middleware: `AuthenticateRunner` (validate runner token)
-- [ ] Controller: `app/Http/Controllers/Api/Runner/RunnerController.php` (jobs/next, jobs/{id}/status, jobs/{id}/log, jobs/{id}/artifact, heartbeat)
-- [ ] Update `routes/runner.php` with actual routes + middleware
-- [ ] Admin controller: `app/Http/Controllers/Api/Pipeline/RunnerController.php` (index, store, show, destroy)
-- [ ] Contract tests: runner API request/response shapes
-- [ ] UI: runner list, register runner (show token once)
+- [x] Migration: `create_runners_table`
+- [x] Model: `Runner.php`
+- [x] Enum: `RunnerStatus` (online, offline, busy, draining)
+- [x] Action: `RegisterRunner` (generate token, return plaintext once)
+- [x] Middleware: `AuthenticateRunner` (validate runner token)
+- [x] Controller: `app/Http/Controllers/Api/Runner/RunnerController.php` (jobs/next, jobs/{id}/status, jobs/{id}/log, jobs/{id}/artifact, heartbeat)
+- [x] Update `routes/runner.php` with actual routes + middleware
+- [x] Admin controller: `app/Http/Controllers/Api/Pipeline/RunnerController.php` (index, store, show, destroy)
+- [x] Contract tests: runner API request/response shapes
+- [x] UI: runner list, register runner (show token once)
 
 ### 4.5 Artifacts
 
-- [ ] Migration: `create_artifacts_table`
-- [ ] Model: `Artifact.php` (HasStateMachine)
-- [ ] Enum: `ArtifactStatus` (building, ready, deployed, superseded, expired, failed)
-- [ ] State machine transitions (architecture doc Section 7.5)
-- [ ] Action: `CreateArtifact` (from runner upload — store to S3, compute hash)
-- [ ] Job: `CleanupOldArtifacts` (scheduled daily, apply retention policy)
-- [ ] Controller: list artifacts per app, show artifact detail
-- [ ] Tests
-- [ ] UI: artifact info in pipeline run detail
+- [x] Migration: `create_artifacts_table`
+- [x] Model: `Artifact.php` (HasStateMachine)
+- [x] Enum: `ArtifactStatus` (building, ready, deployed, superseded, expired, failed)
+- [x] State machine transitions (architecture doc Section 7.5)
+- [x] Action: `CreateArtifact` (from runner upload — store to S3, compute hash)
+- [x] Job: `CleanupOldArtifacts` (scheduled daily, apply retention policy)
+- [x] Controller: list artifacts per app, show artifact detail
+- [x] Tests
+- [x] UI: artifact info in pipeline run detail
 
 ### 4.6 Phase 4 Completion
 
-- [ ] All tests passing, pint passing
-- [ ] Update CLAUDE.md + this roadmap
+- [x] All tests passing, pint passing
+- [x] Update CLAUDE.md + this roadmap
+
+**Completed:** 2026-03-30
+**Deliverables:** 5 migrations, 5 models, 15 actions, 25 tests, 23 API endpoints
 
 ---
 

@@ -4,8 +4,10 @@ namespace Tests\Feature\Api\Pipeline;
 
 use App\Modules\AppPlatform\Enums\GitProvider;
 use App\Modules\AppPlatform\Models\Application;
+use App\Modules\Pipeline\Jobs\ProcessWebhook;
 use App\Modules\Pipeline\Models\Webhook;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Tests\TestCase;
 
 class WebhookControllerTest extends TestCase
@@ -14,6 +16,8 @@ class WebhookControllerTest extends TestCase
 
     public function test_valid_signature_returns_202(): void
     {
+        Bus::fake();
+
         $application = Application::factory()->create();
         $webhook = Webhook::factory()->create([
             'application_id' => $application->id,
@@ -28,6 +32,8 @@ class WebhookControllerTest extends TestCase
             ->assertAccepted()
             ->assertJsonPath('application_id', $application->id)
             ->assertJsonPath('provider', 'github');
+
+        Bus::assertDispatched(ProcessWebhook::class, fn (ProcessWebhook $job) => $job->application->is($application) && $job->provider === 'github');
     }
 
     public function test_invalid_signature_returns_401(): void

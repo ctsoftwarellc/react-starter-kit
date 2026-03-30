@@ -3,6 +3,8 @@
 namespace App\Modules\AppPlatform\Models;
 
 use App\Modules\AppPlatform\Enums\Runtime;
+use App\Modules\Pipeline\Models\Artifact;
+use App\Modules\Pipeline\Models\Pipeline;
 use App\Modules\Pipeline\Models\Webhook;
 use App\Support\Concerns\HasUlid;
 use Database\Factories\ApplicationFactory;
@@ -45,6 +47,16 @@ class Application extends Model
     public function webhooks(): HasMany
     {
         return $this->hasMany(Webhook::class);
+    }
+
+    public function pipelines(): HasMany
+    {
+        return $this->hasMany(Pipeline::class);
+    }
+
+    public function artifacts(): HasMany
+    {
+        return $this->hasMany(Artifact::class);
     }
 
     public function scopeForProject(Builder $query, Project $project): Builder

@@ -1,10 +1,14 @@
 <?php
 
 use App\Http\Middleware\AuthenticateAgent;
+use App\Http\Middleware\AuthenticateRunner;
 use App\Http\Middleware\AuthenticateWithToken;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\VerifyWebhookSignature;
+use App\Modules\Pipeline\Jobs\CheckJobTimeout;
+use App\Modules\Pipeline\Jobs\CleanupOldArtifacts;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -40,8 +44,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.token' => AuthenticateWithToken::class,
             'auth.agent' => AuthenticateAgent::class,
+            'auth.runner' => AuthenticateRunner::class,
             'webhook.signature' => VerifyWebhookSignature::class,
         ]);
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->job(new CheckJobTimeout)->everyMinute();
+        $schedule->job(new CleanupOldArtifacts)->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

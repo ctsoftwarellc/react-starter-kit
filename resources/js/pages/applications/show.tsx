@@ -1,6 +1,6 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -34,17 +34,89 @@ import type {
     Cluster,
     Environment,
     GitConnection,
+    Pipeline,
+    PipelineRun,
     Project,
 } from '@/types';
 
 type Props = {
     application: Application & {
         environments?: Array<Environment & { cluster?: Cluster }>;
+        pipelines?: Array<Pipeline & { runs?: PipelineRun[] }>;
     };
     project: Project;
     gitConnections: GitConnection[];
     clusters: Cluster[];
 };
+
+type PipelineFormState = {
+    name: string;
+    definition: string;
+    is_active: boolean;
+    trigger_branches: string;
+    trigger_events: string;
+};
+
+function defaultPipelineDefinition(branch: string): string {
+    return JSON.stringify(
+        {
+            artifact: true,
+            stages: [
+                {
+                    name: 'build',
+                    jobs: [
+                        {
+                            name: 'bundle',
+                            commands: [
+                                'git fetch --all',
+                                `git checkout ${branch}`,
+                                'npm ci',
+                                'npm run build',
+                            ],
+                            environment: {},
+                            allow_failure: false,
+                            timeout: 15,
+                        },
+                    ],
+                },
+            ],
+        },
+        null,
+        2,
+    );
+}
+
+function emptyPipelineForm(branch: string): PipelineFormState {
+    return {
+        name: '',
+        definition: defaultPipelineDefinition(branch),
+        is_active: true,
+        trigger_branches: branch,
+        trigger_events: 'push, manual',
+    };
+}
+
+function statusVariant(
+    status: string,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+    switch (status) {
+        case 'succeeded':
+        case 'ready':
+            return 'default';
+        case 'running':
+        case 'queued':
+        case 'assigned':
+        case 'pending':
+        case 'building':
+            return 'secondary';
+        case 'failed':
+        case 'cancelled':
+        case 'timed_out':
+            return 'destructive';
+        default:
+            return 'outline';
+    }
+}
 
 export default function ApplicationShow({
     application,
@@ -53,6 +125,22 @@ export default function ApplicationShow({
     clusters,
 }: Props) {
     const [showDelete, setShowDelete] = useState(false);
+    const [showPipelineDialog, setShowPipelineDialog] = useState(false);
+    const [editingPipeline, setEditingPipeline] = useState<Pipeline | null>(
+        null,
+    );
+    const [pipelineForm, setPipelineForm] = useState<PipelineFormState>(
+        emptyPipelineForm(application.repository_branch),
+    );
+    const [pipelineErrors, setPipelineErrors] = useState<
+        Record<string, string>
+    >({});
+    const [pipelineProcessing, setPipelineProcessing] = useState(false);
+    const [triggerPipelineId, setTriggerPipelineId] = useState<string | null>(
+        null,
+    );
+    const [triggerEnvironmentId, setTriggerEnvironmentId] = useState('');
+    const [triggerProcessing, setTriggerProcessing] = useState(false);
 
     const settingsForm = useForm({
         name: application.name,
@@ -70,6 +158,24 @@ export default function ApplicationShow({
         is_auto_deploy: false,
     });
 
+    const recentRuns = useMemo(
+        () =>
+            (application.pipelines ?? [])
+                .flatMap((pipeline) =>
+                    (pipeline.runs ?? []).map((run) => ({
+                        ...run,
+                        pipeline,
+                    })),
+                )
+                .sort(
+                    (left, right) =>
+                        new Date(right.created_at).getTime() -
+                        new Date(left.created_at).getTime(),
+                )
+                .slice(0, 8),
+        [application.pipelines],
+    );
+
     function saveSettings(event: React.FormEvent) {
         event.preventDefault();
         settingsForm.put(`/applications/${application.id}`);
@@ -86,6 +192,134 @@ export default function ApplicationShow({
         router.delete(`/applications/${application.id}`, {
             onSuccess: () => setShowDelete(false),
         });
+    }
+
+    function openCreatePipeline() {
+        setEditingPipeline(null);
+        setPipelineErrors({});
+        setPipelineForm(emptyPipelineForm(application.repository_branch));
+        setShowPipelineDialog(true);
+    }
+
+    function openEditPipeline(pipeline: Pipeline) {
+        setEditingPipeline(pipeline);
+        setPipelineErrors({});
+        setPipelineForm({
+            name: pipeline.name,
+            definition: JSON.stringify(pipeline.definition, null, 2),
+            is_active: pipeline.is_active,
+            trigger_branches: pipeline.trigger_branches.join(', '),
+            trigger_events: pipeline.trigger_events.join(', '),
+        });
+        setShowPipelineDialog(true);
+    }
+
+    async function savePipeline(event: React.FormEvent) {
+        event.preventDefault();
+        setPipelineProcessing(true);
+        setPipelineErrors({});
+
+        const url = editingPipeline
+            ? `/api/v1/pipelines/${editingPipeline.id}`
+            : `/api/v1/applications/${application.id}/pipelines`;
+
+        const response = await fetch(url, {
+            method: editingPipeline ? 'PUT' : 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                name: pipelineForm.name,
+                definition: pipelineForm.definition,
+                is_active: pipelineForm.is_active,
+                trigger_branches: pipelineForm.trigger_branches
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean),
+                trigger_events: pipelineForm.trigger_events
+                    .split(',')
+                    .map((value) => value.trim())
+                    .filter(Boolean),
+            }),
+        });
+
+        const payload = response.status === 204 ? null : await response.json();
+
+        if (!response.ok) {
+            setPipelineErrors(
+                Object.fromEntries(
+                    Object.entries(
+                        (payload as { errors?: Record<string, string[]> })
+                            ?.errors ?? {},
+                    ).map(([key, value]) => [
+                        key,
+                        value[0] ?? 'Invalid value.',
+                    ]),
+                ),
+            );
+            setPipelineProcessing(false);
+
+            return;
+        }
+
+        setPipelineProcessing(false);
+        setShowPipelineDialog(false);
+        router.reload({ only: ['application'] });
+    }
+
+    async function deletePipeline(pipeline: Pipeline) {
+        if (!window.confirm(`Delete pipeline ${pipeline.name}?`)) {
+            return;
+        }
+
+        await fetch(`/api/v1/pipelines/${pipeline.id}`, {
+            method: 'DELETE',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        });
+
+        router.reload({ only: ['application'] });
+    }
+
+    async function triggerPipeline() {
+        if (!triggerPipelineId) {
+            return;
+        }
+
+        setTriggerProcessing(true);
+
+        const response = await fetch(
+            `/api/v1/pipelines/${triggerPipelineId}/trigger`,
+            {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    trigger_type: 'manual',
+                    environment_id: triggerEnvironmentId || null,
+                    trigger_ref: application.repository_branch,
+                }),
+            },
+        );
+
+        const payload = (await response.json()) as { data: PipelineRun };
+        setTriggerProcessing(false);
+        setTriggerPipelineId(null);
+        setTriggerEnvironmentId('');
+
+        if (response.ok) {
+            router.visit(`/pipeline-runs/${payload.data.id}`);
+        }
     }
 
     return (
@@ -401,27 +635,231 @@ export default function ApplicationShow({
                         </Card>
 
                         <Card>
-                            <CardHeader>
-                                <CardTitle>Later Phases</CardTitle>
-                                <CardDescription>
-                                    Pipeline, deployment, and release views land
-                                    in upcoming phases.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="grid gap-4 md:grid-cols-2">
-                                <div className="rounded-lg border p-4">
-                                    <p className="font-medium">Pipelines</p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        Pipeline definitions and recent runs
-                                        arrive in Phase 4.
-                                    </p>
+                            <CardHeader className="flex flex-row items-center justify-between gap-4">
+                                <div>
+                                    <CardTitle>Pipelines</CardTitle>
+                                    <CardDescription>
+                                        Define build stages, trigger manual
+                                        runs, and inspect recent activity from
+                                        one place.
+                                    </CardDescription>
                                 </div>
-                                <div className="rounded-lg border p-4">
-                                    <p className="font-medium">Deployments</p>
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        Releases, rollouts, and rollback history
-                                        arrive in Phase 5.
-                                    </p>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" asChild>
+                                        <Link href="/runners">
+                                            View Runners
+                                        </Link>
+                                    </Button>
+                                    <Button onClick={openCreatePipeline}>
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        New Pipeline
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {application.pipelines?.length ? (
+                                    <div className="grid gap-4">
+                                        {application.pipelines.map(
+                                            (pipeline) => (
+                                                <div
+                                                    key={pipeline.id}
+                                                    className="rounded-lg border p-4"
+                                                >
+                                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                                        <div className="space-y-3">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <p className="font-medium">
+                                                                    {
+                                                                        pipeline.name
+                                                                    }
+                                                                </p>
+                                                                <Badge
+                                                                    variant={
+                                                                        pipeline.is_active
+                                                                            ? 'default'
+                                                                            : 'outline'
+                                                                    }
+                                                                >
+                                                                    {pipeline.is_active
+                                                                        ? 'active'
+                                                                        : 'inactive'}
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                                                <span>
+                                                                    Branches:{' '}
+                                                                    {pipeline.trigger_branches.join(
+                                                                        ', ',
+                                                                    )}
+                                                                </span>
+                                                                <span>-</span>
+                                                                <span>
+                                                                    Events:{' '}
+                                                                    {pipeline.trigger_events.join(
+                                                                        ', ',
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                            <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+                                                                {
+                                                                    pipeline
+                                                                        .definition
+                                                                        .stages
+                                                                        .length
+                                                                }{' '}
+                                                                stage
+                                                                {pipeline
+                                                                    .definition
+                                                                    .stages
+                                                                    .length ===
+                                                                1
+                                                                    ? ''
+                                                                    : 's'}
+                                                                , artifact{' '}
+                                                                {pipeline
+                                                                    .definition
+                                                                    .artifact
+                                                                    ? 'enabled'
+                                                                    : 'disabled'}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    openEditPipeline(
+                                                                        pipeline,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Pencil className="mr-2 h-4 w-4" />
+                                                                Edit
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    setTriggerPipelineId(
+                                                                        pipeline.id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Play className="mr-2 h-4 w-4" />
+                                                                Trigger
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={() =>
+                                                                    deletePipeline(
+                                                                        pipeline,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Delete
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                                        No pipeline definition yet. Create one
+                                        with a raw JSON stage plan and start
+                                        shipping builds.
+                                    </div>
+                                )}
+
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p className="font-medium">
+                                                Recent runs
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Latest webhook and manual
+                                                executions across every
+                                                pipeline.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {recentRuns.length ? (
+                                        <div className="rounded-md border">
+                                            <table className="w-full text-sm">
+                                                <thead>
+                                                    <tr className="border-b bg-muted/50">
+                                                        <th className="px-4 py-2 text-left font-medium">
+                                                            Pipeline
+                                                        </th>
+                                                        <th className="px-4 py-2 text-left font-medium">
+                                                            Status
+                                                        </th>
+                                                        <th className="px-4 py-2 text-left font-medium">
+                                                            Trigger
+                                                        </th>
+                                                        <th className="px-4 py-2 text-left font-medium">
+                                                            Ref
+                                                        </th>
+                                                        <th className="px-4 py-2 text-left font-medium">
+                                                            Environment
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {recentRuns.map((run) => (
+                                                        <tr
+                                                            key={run.id}
+                                                            className="border-b last:border-0"
+                                                        >
+                                                            <td className="px-4 py-2">
+                                                                <Link
+                                                                    href={`/pipeline-runs/${run.id}`}
+                                                                    className="font-medium text-primary hover:underline"
+                                                                >
+                                                                    {
+                                                                        run
+                                                                            .pipeline
+                                                                            ?.name
+                                                                    }
+                                                                </Link>
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                <Badge
+                                                                    variant={statusVariant(
+                                                                        run.status,
+                                                                    )}
+                                                                >
+                                                                    {run.status}
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="px-4 py-2 text-muted-foreground">
+                                                                {
+                                                                    run.trigger_type
+                                                                }
+                                                            </td>
+                                                            <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                                                                {run.trigger_ref ??
+                                                                    '-'}
+                                                            </td>
+                                                            <td className="px-4 py-2 text-muted-foreground">
+                                                                {run.environment
+                                                                    ?.name ??
+                                                                    '-'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            No runs yet. Trigger a manual build
+                                            after saving a pipeline.
+                                        </p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -609,6 +1047,205 @@ export default function ApplicationShow({
                         </Button>
                         <Button variant="destructive" onClick={handleDelete}>
                             Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={showPipelineDialog}
+                onOpenChange={setShowPipelineDialog}
+            >
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {editingPipeline
+                                ? 'Edit Pipeline'
+                                : 'Create Pipeline'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Use a raw JSON definition for the MVP pipeline
+                            editor.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <form className="space-y-4" onSubmit={savePipeline}>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="pipeline-name">Name</Label>
+                                <Input
+                                    id="pipeline-name"
+                                    value={pipelineForm.name}
+                                    onChange={(event) =>
+                                        setPipelineForm((current) => ({
+                                            ...current,
+                                            name: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Production build"
+                                />
+                                <InputError message={pipelineErrors.name} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="pipeline-branches">
+                                    Trigger branches
+                                </Label>
+                                <Input
+                                    id="pipeline-branches"
+                                    value={pipelineForm.trigger_branches}
+                                    onChange={(event) =>
+                                        setPipelineForm((current) => ({
+                                            ...current,
+                                            trigger_branches:
+                                                event.target.value,
+                                        }))
+                                    }
+                                    placeholder="main, release/*"
+                                />
+                                <InputError
+                                    message={pipelineErrors.trigger_branches}
+                                />
+                            </div>
+
+                            <div className="grid gap-2 md:col-span-2">
+                                <Label htmlFor="pipeline-events">
+                                    Trigger events
+                                </Label>
+                                <Input
+                                    id="pipeline-events"
+                                    value={pipelineForm.trigger_events}
+                                    onChange={(event) =>
+                                        setPipelineForm((current) => ({
+                                            ...current,
+                                            trigger_events: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="push, manual"
+                                />
+                                <InputError
+                                    message={pipelineErrors.trigger_events}
+                                />
+                            </div>
+
+                            <div className="grid gap-2 md:col-span-2">
+                                <Label htmlFor="pipeline-definition">
+                                    Definition JSON
+                                </Label>
+                                <textarea
+                                    id="pipeline-definition"
+                                    value={pipelineForm.definition}
+                                    onChange={(event) =>
+                                        setPipelineForm((current) => ({
+                                            ...current,
+                                            definition: event.target.value,
+                                        }))
+                                    }
+                                    className="min-h-80 rounded-md border bg-background px-3 py-2 font-mono text-sm"
+                                />
+                                <InputError
+                                    message={pipelineErrors.definition}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <input
+                                id="pipeline-active"
+                                type="checkbox"
+                                checked={pipelineForm.is_active}
+                                onChange={(event) =>
+                                    setPipelineForm((current) => ({
+                                        ...current,
+                                        is_active: event.target.checked,
+                                    }))
+                                }
+                            />
+                            <Label htmlFor="pipeline-active">
+                                Pipeline is active
+                            </Label>
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={() => setShowPipelineDialog(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button disabled={pipelineProcessing}>
+                                {editingPipeline
+                                    ? 'Save Pipeline'
+                                    : 'Create Pipeline'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={triggerPipelineId !== null}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setTriggerPipelineId(null);
+                        setTriggerEnvironmentId('');
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Trigger Pipeline</DialogTitle>
+                        <DialogDescription>
+                            Queue a manual run and optionally target one
+                            environment.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-2">
+                        <Label htmlFor="trigger-environment">Environment</Label>
+                        <Select
+                            value={triggerEnvironmentId || '__none'}
+                            onValueChange={(value) =>
+                                setTriggerEnvironmentId(
+                                    value === '__none' ? '' : value,
+                                )
+                            }
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Optional environment" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="__none">
+                                    No environment
+                                </SelectItem>
+                                {application.environments?.map(
+                                    (environment) => (
+                                        <SelectItem
+                                            key={environment.id}
+                                            value={environment.id}
+                                        >
+                                            {environment.name}
+                                        </SelectItem>
+                                    ),
+                                )}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setTriggerPipelineId(null)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={triggerPipeline}
+                            disabled={triggerProcessing}
+                        >
+                            Start Run
                         </Button>
                     </DialogFooter>
                 </DialogContent>
