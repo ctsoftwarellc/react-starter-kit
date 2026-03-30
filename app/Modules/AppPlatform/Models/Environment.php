@@ -10,6 +10,7 @@ use App\Modules\Deployment\Models\RemoteCommand;
 use App\Modules\Deployment\Models\RuntimeProfile;
 use App\Modules\Deployment\Models\ServerRoleProfile;
 use App\Modules\Infrastructure\Models\Cluster;
+use App\Modules\Networking\Models\Domain;
 use App\Modules\Pipeline\Models\PipelineRun;
 use App\Modules\ServiceManagement\Models\ServiceBinding;
 use App\Support\Concerns\HasUlid;
@@ -103,6 +104,11 @@ class Environment extends Model
     public function pipelineRuns(): HasMany
     {
         return $this->hasMany(PipelineRun::class);
+    }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(Domain::class);
     }
 
     protected static function newFactory(): EnvironmentFactory

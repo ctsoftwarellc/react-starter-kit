@@ -21,7 +21,10 @@ use App\Modules\Infrastructure\Events\ProviderUpdated;
 use App\Modules\Infrastructure\Events\ServerBootstrapped;
 use App\Modules\Infrastructure\Events\ServerHealthChanged;
 use App\Modules\Infrastructure\Events\ServerRegistered;
+use App\Modules\Networking\Events\DomainAssigned;
+use App\Modules\Networking\Events\DomainVerified;
 use App\Modules\Operations\Actions\RecordAuditLog as RecordAuditLogAction;
+use App\Modules\Operations\Events\BackupCreated;
 use App\Modules\Pipeline\Events\ArtifactCreated;
 use App\Modules\Pipeline\Events\PipelineJobCompleted;
 use App\Modules\Pipeline\Events\PipelineRunCompleted;
@@ -53,6 +56,9 @@ class RecordAuditLog
         DeploymentFailed::class => 'deployment.failed',
         RollbackCompleted::class => 'deployment.rollback_completed',
         RemoteCommandExecuted::class => 'remote_command.executed',
+        DomainAssigned::class => 'domain.assigned',
+        DomainVerified::class => 'domain.verified',
+        BackupCreated::class => 'backup.created',
     ];
 
     public function handle(object $event): void
@@ -89,6 +95,8 @@ class RecordAuditLog
             ?? $event->artifact
             ?? $event->deployment
             ?? $event->remoteCommand
+            ?? $event->domain
+            ?? $event->backup
             ?? null;
     }
 
@@ -232,6 +240,32 @@ class RecordAuditLog
                 'type' => $event->remoteCommand->type->value,
                 'command' => $event->remoteCommand->command,
                 'status' => $event->remoteCommand->status->value,
+            ]];
+        }
+
+        if ($event instanceof DomainAssigned) {
+            return [null, [
+                'environment_id' => $event->domain->environment_id,
+                'hostname' => $event->domain->hostname,
+                'is_primary' => $event->domain->is_primary,
+            ]];
+        }
+
+        if ($event instanceof DomainVerified) {
+            return [
+                ['is_verified' => false],
+                [
+                    'hostname' => $event->domain->hostname,
+                    'is_verified' => true,
+                ],
+            ];
+        }
+
+        if ($event instanceof BackupCreated) {
+            return [null, [
+                'server_id' => $event->backup->server_id,
+                'type' => $event->backup->type,
+                'status' => $event->backup->status->value,
             ]];
         }
 

@@ -27,6 +27,11 @@ use App\Modules\Infrastructure\Events\ServerHealthChanged;
 use App\Modules\Infrastructure\Events\ServerRegistered;
 use App\Modules\Infrastructure\Listeners\PushSshKeysOnBootstrap;
 use App\Modules\Infrastructure\Listeners\UpdateClusterStatus;
+use App\Modules\Networking\Events\DomainAssigned;
+use App\Modules\Networking\Events\DomainVerified;
+use App\Modules\Networking\Jobs\VerifyDomain as VerifyDomainJob;
+use App\Modules\Networking\Listeners\RegenerateProxyConfigs;
+use App\Modules\Operations\Events\BackupCreated;
 use App\Modules\Operations\Listeners\RecordAuditLog;
 use App\Modules\Pipeline\Events\ArtifactCreated;
 use App\Modules\Pipeline\Events\PipelineJobCompleted;
@@ -87,11 +92,15 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(DeploymentFailed::class, [RecordAuditLog::class, 'handle']);
         Event::listen(RollbackCompleted::class, [RecordAuditLog::class, 'handle']);
         Event::listen(RemoteCommandExecuted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(DomainAssigned::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(DomainVerified::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(BackupCreated::class, [RecordAuditLog::class, 'handle']);
 
         // Infrastructure events → Domain listeners
         Event::listen(ServerBootstrapped::class, [UpdateClusterStatus::class, 'handle']);
         Event::listen(ServerHealthChanged::class, [UpdateClusterStatus::class, 'handle']);
         Event::listen(ServerBootstrapped::class, [PushSshKeysOnBootstrap::class, 'handle']);
+        Event::listen(ClusterTopologyChanged::class, [RegenerateProxyConfigs::class, 'handle']);
         Event::listen(PipelineJobCompleted::class, [WakeOrchestrator::class, 'handle']);
         Event::listen(DeploymentCompleted::class, [CleanupOldReleases::class, 'handle']);
         Event::listen(DeploymentFailed::class, [TriggerRollback::class, 'handle']);
@@ -99,6 +108,10 @@ class AppServiceProvider extends ServiceProvider
         // AppPlatform events → Domain listeners
         Event::listen(ApplicationCreated::class, [CreateDefaultEnvironment::class, 'handle']);
         Event::listen(ApplicationCreated::class, [SetupApplicationWebhook::class, 'handle']);
+        Event::listen(DomainAssigned::class, function (DomainAssigned $event): void {
+            VerifyDomainJob::dispatch($event->domain)->afterCommit();
+        });
+        Event::listen(DomainVerified::class, [RegenerateProxyConfigs::class, 'handle']);
     }
 
     /**

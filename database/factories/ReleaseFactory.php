@@ -18,7 +18,7 @@ class ReleaseFactory extends Factory
         return [
             'environment_id' => Environment::factory(),
             'artifact_id' => Artifact::factory(),
-            'version' => fake()->numberBetween(1, 20),
+            'version' => fake()->unique()->numberBetween(1, 1000000),
             'status' => ReleaseStatus::Pending,
             'config_snapshot' => [
                 'env_vars' => ['APP_ENV' => 'production'],

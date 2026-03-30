@@ -2,8 +2,11 @@
 
 use App\Http\Controllers\Web\ActivityWebController;
 use App\Http\Controllers\Web\ApplicationWebController;
+use App\Http\Controllers\Web\BackupWebController;
 use App\Http\Controllers\Web\ClusterWebController;
+use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\DeploymentWebController;
+use App\Http\Controllers\Web\DomainWebController;
 use App\Http\Controllers\Web\EnvironmentWebController;
 use App\Http\Controllers\Web\GitConnectionWebController;
 use App\Http\Controllers\Web\PipelineRunWebController;
@@ -19,7 +22,7 @@ Route::inertia('/', 'welcome', [
 ])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::post('git-connections/github/authorize', [GitConnectionWebController::class, 'authorizeGithub'])->name('git-connections.github.authorize');
     Route::get('git-connections/github/callback', [GitConnectionWebController::class, 'handleGithubCallback'])->name('git-connections.github.callback');
@@ -38,6 +41,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('environments/{environment}', [EnvironmentWebController::class, 'destroy'])->name('environments.destroy');
         Route::post('environments/{environment}/deploy', [EnvironmentWebController::class, 'deploy'])->name('environments.deploy');
         Route::post('environments/{environment}/rollback', [EnvironmentWebController::class, 'rollback'])->name('environments.rollback');
+        Route::post('environments/{environment}/domains', [DomainWebController::class, 'store'])->name('domains.store');
         Route::put('environments/{environment}/health-check', [EnvironmentWebController::class, 'upsertHealthCheck'])->name('environments.health-check');
         Route::post('environments/{environment}/runtime-profiles', [EnvironmentWebController::class, 'storeRuntimeProfile'])->name('environments.runtime-profiles.store');
         Route::put('environments/{environment}/runtime-profiles/{runtimeProfile}', [EnvironmentWebController::class, 'updateRuntimeProfile'])->name('environments.runtime-profiles.update');
@@ -68,6 +72,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('environments/{environment}/service-bindings/{serviceBinding}', [ServiceManagementWebController::class, 'destroyBinding'])->name('environment-service-bindings.destroy');
         Route::get('pipeline-runs/{pipelineRun}', [PipelineRunWebController::class, 'show'])->name('pipeline-runs.show');
         Route::get('deployments/{deployment}', [DeploymentWebController::class, 'show'])->name('deployments.show');
+        Route::post('servers/{server}/backups', [BackupWebController::class, 'store'])->name('servers.backups.store');
+        Route::post('backups/{backup}/restore', [BackupWebController::class, 'restore'])->name('backups.restore');
+        Route::delete('domains/{domain}', [DomainWebController::class, 'destroy'])->name('domains.destroy');
+        Route::post('domains/{domain}/verify', [DomainWebController::class, 'verify'])->name('domains.verify');
     });
 
     Route::resource('servers', ServerWebController::class)->only(['index', 'create', 'store', 'show']);

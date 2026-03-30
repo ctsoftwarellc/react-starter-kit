@@ -38,7 +38,7 @@ class EnvironmentController extends Controller
     public function show(Environment $environment): EnvironmentResource
     {
         return new EnvironmentResource(
-            $environment->load(['application', 'cluster', 'variables', 'secrets', 'processDefinitions', 'runtimeProfile', 'serverRoleProfiles', 'remoteCommands.server']),
+            $environment->load(['application', 'cluster', 'variables', 'secrets', 'processDefinitions', 'runtimeProfile', 'serverRoleProfiles', 'remoteCommands.server', 'domains.certificate']),
         );
     }
 

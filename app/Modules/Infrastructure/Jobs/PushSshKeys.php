@@ -40,9 +40,12 @@ class PushSshKeys implements ShouldQueue
             $this->server->ssh_user,
         );
 
-        $ssh->execute('mkdir -p ~/.ssh && chmod 700 ~/.ssh');
-        $ssh->upload('~/.ssh/authorized_keys', $authorizedKeys);
-        $ssh->execute('chmod 600 ~/.ssh/authorized_keys');
+        $ssh->execute('mkdir -p /root/.ssh && chmod 700 /root/.ssh');
+        $ssh->upload('/root/.ssh/authorized_keys', $authorizedKeys);
+        $ssh->execute('chmod 600 /root/.ssh/authorized_keys');
+        $ssh->execute('if id -u helm >/dev/null 2>&1; then mkdir -p /home/helm/.ssh && chmod 700 /home/helm/.ssh; fi');
+        $ssh->upload('/tmp/helm_authorized_keys', $authorizedKeys);
+        $ssh->execute('if id -u helm >/dev/null 2>&1; then mv /tmp/helm_authorized_keys /home/helm/.ssh/authorized_keys && chown helm:helm /home/helm/.ssh/authorized_keys && chmod 600 /home/helm/.ssh/authorized_keys; else rm -f /tmp/helm_authorized_keys; fi');
 
         $ssh->disconnect();
     }

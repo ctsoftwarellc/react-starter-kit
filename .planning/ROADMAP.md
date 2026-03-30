@@ -488,87 +488,89 @@
 
 ## Phase 6: Networking, Operations, Polish
 
-**Status: NOT STARTED**
+**Status: COMPLETE**
 
 ### 6.1 Domains
 
-- [ ] Migration: `create_domains_table`
-- [ ] Model: `Domain.php`
-- [ ] Action: `AssignDomain`, `RemoveDomain`, `VerifyDomain`
-- [ ] Service: `DnsVerifier` (check DNS records for verification token)
-- [ ] Job: `VerifyDomain`
-- [ ] Event: `DomainAssigned`, `DomainVerified`
-- [ ] Controller, tests
-- [ ] UI: domain list on environment detail, add domain, verify status
+- [x] Migration: `create_domains_table`
+- [x] Model: `Domain.php`
+- [x] Action: `AssignDomain`, `RemoveDomain`, `VerifyDomain`
+- [x] Service: `DnsVerifier` (check DNS records for verification token)
+- [x] Job: `VerifyDomain`
+- [x] Event: `DomainAssigned`, `DomainVerified`
+- [x] Controller, tests
+- [x] UI: domain list on environment detail, add domain, verify status
 
 ### 6.2 Certificates
 
-- [ ] Migration: `create_certificates_table`
-- [ ] Model: `Certificate.php`
-- [ ] Enum: `CertificateStatus` (pending, active, expired, failed)
-- [ ] With Caddy, certificates are mostly automatic — this tracks status
-- [ ] Job: `RenewExpiringCertificates` (scheduled daily)
-- [ ] UI: certificate status next to each domain
+- [x] Migration: `create_certificates_table`
+- [x] Model: `Certificate.php`
+- [x] Enum: `CertificateStatus` (pending, active, expired, failed)
+- [x] With Caddy, certificates are mostly automatic — this tracks status
+- [x] Job: `RenewExpiringCertificates` (scheduled daily)
+- [x] UI: certificate status next to each domain
 
 ### 6.3 Caddy Proxy Config
 
-- [ ] Service: `CaddyConfigGenerator` (generate Caddyfile from domains + environments)
-- [ ] Job: `PushProxyConfig` (send config to web-role nodes via agent)
-- [ ] Listener: `RegenerateProxyConfigs` on `DomainVerified`, `ClusterTopologyChanged`
-- [ ] Agent command type: `update_proxy_config`
+- [x] Service: `CaddyConfigGenerator` (generate Caddyfile from domains + environments)
+- [x] Job: `PushProxyConfig` (send config to web-role nodes via agent)
+- [x] Listener: `RegenerateProxyConfigs` on `DomainVerified`, `ClusterTopologyChanged`
+- [x] Agent command type: `update_proxy_config`
 
 ### 6.4 Bootstrap Hardening + Server Security
 
-- [ ] Expand bootstrap script template for fresh Ubuntu 22.04/24.04 instances
-- [ ] Create non-root `helm` system user with least-privilege sudo for managed operations
-- [ ] Disable password SSH authentication after key install succeeds
-- [ ] Disable root SSH login by default with explicit opt-out for recovery workflows
-- [ ] Lock down `ufw` rules by role (`web`, `worker`, `db`, `cache`, `bastion`)
-- [ ] Bind Postgres/MySQL/Redis to private interfaces by default
-- [ ] Install and configure `fail2ban` baseline for SSH
-- [ ] Configure unattended security upgrades
-- [ ] Write agent config to `/etc/helm/agent.conf` with locked-down permissions
-- [ ] Rotate agent tokens and support server rekey workflow
-- [ ] Push operator SSH keys to managed hosts and support authorized key rotation
-- [ ] Add server hardening audit/check action to detect drift from baseline
-- [ ] Tests: bootstrap hardening on clean Ubuntu images, SSH lockout prevention, role firewall rules
+- [x] Expand bootstrap script template for fresh Ubuntu 22.04/24.04 instances
+- [x] Create non-root `helm` system user with least-privilege sudo for managed operations
+- [x] Disable password SSH authentication after key install succeeds
+- [x] Disable root SSH login by default with explicit opt-out for recovery workflows
+- [x] Lock down `ufw` rules by role (`web`, `worker`, `db`, `cache`, `bastion`)
+- [x] Bind Postgres/MySQL/Redis to private interfaces by default
+- [x] Install and configure `fail2ban` baseline for SSH
+- [x] Configure unattended security upgrades
+- [x] Write agent config to `/etc/helm/agent.conf` with locked-down permissions
+- [x] Rotate agent tokens and support server rekey workflow
+- [x] Push operator SSH keys to managed hosts and support authorized key rotation
+- [x] Add server hardening audit/check action to detect drift from baseline
+- [x] Tests: bootstrap hardening on clean Ubuntu images, SSH lockout prevention, role firewall rules
 
 ### 6.5 Backups + Recovery
 
-- [ ] Migration: `create_backups_table`
-- [ ] Model, Enum (`BackupStatus`), State machine
-- [ ] Action: `CreateBackup`, `RestoreBackup`
-- [ ] Support database backups for both PostgreSQL and MySQL
-- [ ] Support file backups for application volumes and uploaded assets
-- [ ] Support restore verification workflow before marking backup healthy
-- [ ] Job: `ExecuteBackup`, `ApplyRetentionPolicy`
-- [ ] Controller, tests
-- [ ] UI: backup list, trigger backup, restore
+- [x] Migration: `create_backups_table`
+- [x] Model, Enum (`BackupStatus`), State machine
+- [x] Action: `CreateBackup`, `RestoreBackup`
+- [x] Support database backups for both PostgreSQL and MySQL
+- [x] Support file backups for application volumes and uploaded assets
+- [x] Support restore verification workflow before marking backup healthy
+- [x] Job: `ExecuteBackup`, `ApplyRetentionPolicy`
+- [x] Controller, tests
+- [x] UI: backup list, trigger backup, restore
 
 ### 6.6 Dashboard
 
-- [ ] Real data for dashboard cards: server count by status, cluster health, app count
-- [ ] Recent deployments list (last 10)
-- [ ] Recent pipeline runs list (last 10)
-- [ ] Service overview cards: database instances, cache instances, backup status
-- [ ] Wire up all navigation links
+- [x] Real data for dashboard cards: server count by status, cluster health, app count
+- [x] Recent deployments list (last 10)
+- [x] Recent pipeline runs list (last 10)
+- [x] Service overview cards: database instances, cache instances, backup status
+- [x] Wire up all navigation links
 
 ### 6.7 Polish
 
-- [ ] Error pages (404, 500, 503)
-- [ ] Loading states and skeleton screens
-- [ ] Toast notifications for async operations
-- [ ] Empty states for all list pages
-- [ ] Responsive sidebar
-- [ ] Keyboard shortcuts (post-MVP)
+- [x] Error pages (404, 500, 503)
+- [x] Loading states and skeleton screens
+- [x] Toast notifications for async operations
+- [x] Empty states for all list pages
+- [x] Responsive sidebar
+- [x] Keyboard shortcuts (post-MVP)
 
 ### 6.8 Phase 6 Completion
 
-- [ ] Full E2E dedicated client flow works: provision cluster → choose Postgres/MySQL → bind cache → deploy → backup → restore test
-- [ ] Full E2E flow works: register server → bootstrap → cluster → app → pipeline → deploy → domain + SSL
-- [ ] All tests passing, pint passing
-- [ ] Update CLAUDE.md to mark MVP complete
-- [ ] Update this roadmap
+- [x] Full E2E dedicated client flow works: provision cluster → choose Postgres/MySQL → bind cache → deploy → backup → restore test
+- [x] Full E2E flow works: register server → bootstrap → cluster → app → pipeline → deploy → domain + SSL
+- [x] All tests passing, pint passing
+- [x] Update CLAUDE.md to mark MVP complete
+- [x] Update this roadmap
+
+**Completed:** 2026-03-30
 
 ---
 

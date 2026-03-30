@@ -242,6 +242,44 @@ export type HealthCheck = {
     updated_at: string;
 };
 
+export type Certificate = {
+    id: string;
+    domain_id: string;
+    type: 'auto' | 'custom';
+    status: 'pending' | 'active' | 'expired' | 'failed';
+    issued_at: string | null;
+    expires_at: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Domain = {
+    id: string;
+    environment_id: string;
+    hostname: string;
+    is_primary: boolean;
+    is_verified: boolean;
+    verification_token: string | null;
+    certificate?: Certificate | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Backup = {
+    id: string;
+    server_id: string;
+    type: 'database' | 'files';
+    status: 'pending' | 'running' | 'completed' | 'failed' | 'expired';
+    storage_path: string | null;
+    size_bytes: number | null;
+    started_at: string | null;
+    finished_at: string | null;
+    retention_days: number;
+    server?: Server | null;
+    created_at: string;
+    updated_at: string;
+};
+
 export type RunnerCurrentJob = {
     id: string;
     pipeline_run_id: string;
@@ -345,6 +383,7 @@ export type Server = {
     metadata: Record<string, unknown>;
     provider?: Provider;
     clusters?: Cluster[];
+    backups?: Backup[];
     created_at: string;
     updated_at: string;
 };
@@ -384,8 +423,53 @@ export type Environment = {
     secrets?: Secret[];
     process_definitions?: ProcessDefinition[];
     service_bindings?: ServiceBinding[];
+    domains?: Domain[];
     created_at: string;
     updated_at: string;
+};
+
+export type DashboardStats = {
+    server_counts_by_status: Record<string, number>;
+    cluster_health_summary: {
+        total: number;
+        healthy: number;
+        degraded: number;
+        maintenance: number;
+        other: number;
+    };
+    application_count: number;
+};
+
+export type DashboardRecentDeployment = {
+    id: string;
+    status: string;
+    strategy: string;
+    application: string | null;
+    environment: string | null;
+    started_at: string | null;
+    finished_at: string | null;
+    created_at: string;
+};
+
+export type DashboardRecentPipelineRun = {
+    id: string;
+    status: string;
+    trigger_type: string;
+    application: string | null;
+    environment: string | null;
+    duration_seconds: number | null;
+    started_at: string | null;
+    finished_at: string | null;
+    created_at: string;
+};
+
+export type DashboardServiceOverview = {
+    database_instances: number;
+    cache_instances: number;
+    backups?: {
+        count: number;
+        latest_status: string | null;
+    };
 };
 
 export type DatabaseInstance = {

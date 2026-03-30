@@ -3,6 +3,7 @@
 namespace App\Modules\Infrastructure\Models;
 
 use App\Modules\Infrastructure\Enums\ServerStatus;
+use App\Modules\Operations\Models\Backup;
 use App\Support\Concerns\HasStateMachine;
 use App\Support\Concerns\HasUlid;
 use Database\Factories\ServerFactory;
@@ -45,6 +46,11 @@ class Server extends Model
     public function agentCommands(): HasMany
     {
         return $this->hasMany(AgentCommand::class);
+    }
+
+    public function backups(): HasMany
+    {
+        return $this->hasMany(Backup::class);
     }
 
     protected function getStatusEnum(): string

@@ -6,6 +6,7 @@ use App\Http\Resources\Deployment\RemoteCommandResource;
 use App\Http\Resources\Deployment\RuntimeProfileResource;
 use App\Http\Resources\Deployment\ServerRoleProfileResource;
 use App\Http\Resources\Infrastructure\ClusterResource;
+use App\Http\Resources\Networking\DomainResource;
 use App\Http\Resources\ServiceManagement\ServiceBindingResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -32,6 +33,7 @@ class EnvironmentResource extends JsonResource
             'secrets' => SecretResource::collection($this->whenLoaded('secrets')),
             'process_definitions' => ProcessDefinitionResource::collection($this->whenLoaded('processDefinitions')),
             'service_bindings' => ServiceBindingResource::collection($this->whenLoaded('serviceBindings')),
+            'domains' => DomainResource::collection($this->whenLoaded('domains')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

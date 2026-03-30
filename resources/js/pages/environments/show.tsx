@@ -1,6 +1,9 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
+    ArchiveRestore,
+    Database,
     Eye,
+    FolderArchive,
     Pencil,
     RefreshCw,
     Rocket,
@@ -26,11 +29,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { DomainList } from '@/components/networking/domain-list';
 import type {
     Application,
     Artifact,
+    Backup,
     CacheInstance,
     Cluster,
+    Domain,
     DatabaseInstance,
     Deployment,
     Environment,
@@ -55,6 +61,8 @@ type Props = {
         cluster?: Cluster;
     };
     application: Application;
+    domains: Domain[];
+    backupServers: Array<Server & { backups?: Backup[] }>;
     clusters: Cluster[];
     databaseInstances: DatabaseInstance[];
     cacheInstances: CacheInstance[];
@@ -131,6 +139,8 @@ function bindingServiceName(binding: ServiceBinding): string {
 export default function EnvironmentShow({
     environment,
     application,
+    domains,
+    backupServers,
     clusters,
     databaseInstances,
     cacheInstances,
@@ -266,6 +276,12 @@ export default function EnvironmentShow({
         storage_bucket_id: '',
     });
 
+    const backupForm = useForm({
+        server_id: backupServers[0]?.id ?? '',
+        type: 'database',
+        retention_days: 30,
+    });
+
     const variables = useMemo(
         () => environment.variables ?? [],
         [environment.variables],
@@ -292,6 +308,7 @@ export default function EnvironmentShow({
         () => remoteCommands ?? [],
         [remoteCommands],
     );
+    const environmentDomains = useMemo(() => domains ?? [], [domains]);
 
     function saveSettings(event: React.FormEvent) {
         event.preventDefault();
@@ -418,6 +435,23 @@ export default function EnvironmentShow({
 
     function deleteEnvironment() {
         router.delete(`/environments/${environment.id}`);
+    }
+
+    function submitBackup(event: React.FormEvent) {
+        event.preventDefault();
+
+        backupForm.post(`/servers/${backupForm.data.server_id}/backups`, {
+            preserveScroll: true,
+            onSuccess: () => backupForm.reset('type', 'retention_days'),
+        });
+    }
+
+    function restoreBackup(backup: Backup) {
+        router.post(
+            `/backups/${backup.id}/restore`,
+            { server_id: backup.server_id },
+            { preserveScroll: true },
+        );
     }
 
     function submitDeploy(event: React.FormEvent) {
@@ -646,6 +680,11 @@ export default function EnvironmentShow({
                                 )}
                             </CardContent>
                         </Card>
+
+                        <DomainList
+                            domains={environmentDomains}
+                            environmentId={environment.id}
+                        />
 
                         <Card>
                             <CardHeader>
@@ -931,6 +970,227 @@ export default function EnvironmentShow({
                                         Start Rollback
                                     </Button>
                                 </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Backups</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {backupServers.length > 0 ? (
+                                    <form
+                                        onSubmit={submitBackup}
+                                        className="grid gap-4 rounded-lg border p-4 md:grid-cols-4"
+                                    >
+                                        <div className="grid gap-2 md:col-span-2">
+                                            <Label htmlFor="backup-server">
+                                                Target Server
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    backupForm.data.server_id
+                                                }
+                                                onValueChange={(value) =>
+                                                    backupForm.setData(
+                                                        'server_id',
+                                                        value,
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select server" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {backupServers.map(
+                                                        (server) => (
+                                                            <SelectItem
+                                                                key={server.id}
+                                                                value={
+                                                                    server.id
+                                                                }
+                                                            >
+                                                                {server.name} (
+                                                                {
+                                                                    server.public_ip
+                                                                }
+                                                                )
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError
+                                                message={
+                                                    backupForm.errors.server_id
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="backup-type">
+                                                Type
+                                            </Label>
+                                            <Select
+                                                value={backupForm.data.type}
+                                                onValueChange={(value) =>
+                                                    backupForm.setData(
+                                                        'type',
+                                                        value as Backup['type'],
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="database">
+                                                        Database
+                                                    </SelectItem>
+                                                    <SelectItem value="files">
+                                                        Files
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="backup-retention">
+                                                Retention Days
+                                            </Label>
+                                            <Input
+                                                id="backup-retention"
+                                                type="number"
+                                                min={1}
+                                                max={365}
+                                                value={
+                                                    backupForm.data
+                                                        .retention_days
+                                                }
+                                                onChange={(event) =>
+                                                    backupForm.setData(
+                                                        'retention_days',
+                                                        Number(
+                                                            event.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="md:col-span-4">
+                                            <Button
+                                                disabled={
+                                                    backupForm.processing ||
+                                                    !backupForm.data.server_id
+                                                }
+                                            >
+                                                <FolderArchive className="mr-2 h-4 w-4" />
+                                                Trigger Backup
+                                            </Button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                                        Backups become available once this
+                                        environment has active cluster nodes.
+                                    </div>
+                                )}
+
+                                <div className="space-y-3">
+                                    {backupServers.map((server) => (
+                                        <div
+                                            key={server.id}
+                                            className="rounded-lg border p-4"
+                                        >
+                                            <div className="mb-3 flex items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="font-medium">
+                                                        {server.name}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {server.public_ip}
+                                                    </p>
+                                                </div>
+                                                <Badge variant="outline">
+                                                    {server.backups?.length ??
+                                                        0}{' '}
+                                                    backups
+                                                </Badge>
+                                            </div>
+                                            {server.backups &&
+                                            server.backups.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {server.backups.map(
+                                                        (backup) => (
+                                                            <div
+                                                                key={backup.id}
+                                                                className="flex flex-col gap-3 rounded-lg border px-3 py-3 text-sm md:flex-row md:items-center md:justify-between"
+                                                            >
+                                                                <div className="space-y-1">
+                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                        <span className="font-medium capitalize">
+                                                                            {backup.type ===
+                                                                            'database' ? (
+                                                                                <Database className="mr-1 inline h-4 w-4" />
+                                                                            ) : (
+                                                                                <FolderArchive className="mr-1 inline h-4 w-4" />
+                                                                            )}
+                                                                            {
+                                                                                backup.type
+                                                                            }
+                                                                        </span>
+                                                                        <Badge
+                                                                            variant={deploymentStatusVariant(
+                                                                                backup.status,
+                                                                            )}
+                                                                        >
+                                                                            {
+                                                                                backup.status
+                                                                            }
+                                                                        </Badge>
+                                                                    </div>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Started{' '}
+                                                                        {backup.started_at
+                                                                            ? new Date(
+                                                                                  backup.started_at,
+                                                                              ).toLocaleString()
+                                                                            : 'pending'}
+                                                                        {' · '}
+                                                                        Retention{' '}
+                                                                        {
+                                                                            backup.retention_days
+                                                                        }{' '}
+                                                                        days
+                                                                    </p>
+                                                                </div>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        restoreBackup(
+                                                                            backup,
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        backup.status !==
+                                                                        'completed'
+                                                                    }
+                                                                >
+                                                                    <ArchiveRestore className="mr-2 h-4 w-4" />
+                                                                    Restore
+                                                                </Button>
+                                                            </div>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">
+                                                    No backups recorded for this
+                                                    server yet.
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </CardContent>
                         </Card>
 

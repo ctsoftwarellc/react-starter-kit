@@ -15,7 +15,10 @@ use App\Http\Controllers\Api\Deployment\ServerRoleProfileController;
 use App\Http\Controllers\Api\Infrastructure\ClusterController;
 use App\Http\Controllers\Api\Infrastructure\ProviderController;
 use App\Http\Controllers\Api\Infrastructure\ServerController;
+use App\Http\Controllers\Api\Networking\CertificateController;
+use App\Http\Controllers\Api\Networking\DomainController;
 use App\Http\Controllers\Api\Operations\AuditLogController;
+use App\Http\Controllers\Api\Operations\BackupController;
 use App\Http\Controllers\Api\PersonalAccessTokenController;
 use App\Http\Controllers\Api\Pipeline\ArtifactController;
 use App\Http\Controllers\Api\Pipeline\PipelineController;
@@ -65,6 +68,8 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
         Route::get('environments/{environment}', [EnvironmentController::class, 'show'])->name('environments.show');
         Route::put('environments/{environment}', [EnvironmentController::class, 'update'])->name('environments.update');
         Route::delete('environments/{environment}', [EnvironmentController::class, 'destroy'])->name('environments.destroy');
+        Route::get('environments/{environment}/domains', [DomainController::class, 'index'])->name('domains.index');
+        Route::post('environments/{environment}/domains', [DomainController::class, 'store'])->name('domains.store');
         Route::get('environments/{environment}/variables', [EnvironmentVariableController::class, 'index'])->name('environment-variables.index');
         Route::post('environments/{environment}/variables', [EnvironmentVariableController::class, 'store'])->name('environment-variables.store');
         Route::put('environments/{environment}/variables/{variable}', [EnvironmentVariableController::class, 'update'])->name('environment-variables.update');
@@ -92,6 +97,8 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
         Route::post('environments/{environment}/server-role-profiles', [ServerRoleProfileController::class, 'store'])->name('server-role-profiles.store');
         Route::get('environments/{environment}/remote-commands', [RemoteCommandController::class, 'index'])->name('remote-commands.index');
         Route::post('environments/{environment}/remote-commands', [RemoteCommandController::class, 'store'])->name('remote-commands.store');
+        Route::get('servers/{server}/backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::post('servers/{server}/backups', [BackupController::class, 'store'])->name('backups.store');
     });
 
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
@@ -131,4 +138,8 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
     Route::post('clusters/{cluster}/nodes', [ClusterController::class, 'addNode'])->name('clusters.add-node');
     Route::delete('clusters/{cluster}/nodes/{server}', [ClusterController::class, 'removeNode'])->name('clusters.remove-node');
     Route::put('clusters/{cluster}/nodes/{server}', [ClusterController::class, 'updateNode'])->name('clusters.update-node');
+    Route::delete('domains/{domain}', [DomainController::class, 'destroy'])->name('domains.destroy');
+    Route::post('domains/{domain}/verify', [DomainController::class, 'verify'])->name('domains.verify');
+    Route::get('domains/{domain}/certificate', [CertificateController::class, 'show'])->name('domains.certificate.show');
+    Route::post('backups/{backup}/restore', [BackupController::class, 'restore'])->name('backups.restore');
 });

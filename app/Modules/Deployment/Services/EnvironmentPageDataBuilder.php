@@ -9,6 +9,8 @@ use App\Http\Resources\Deployment\RemoteCommandResource;
 use App\Http\Resources\Deployment\RuntimeProfileResource;
 use App\Http\Resources\Deployment\ServerRoleProfileResource;
 use App\Http\Resources\Infrastructure\ServerResource;
+use App\Http\Resources\Networking\DomainResource;
+use App\Http\Resources\Operations\BackupResource;
 use App\Http\Resources\Pipeline\ArtifactResource;
 use App\Modules\AppPlatform\Models\Environment;
 use App\Modules\Infrastructure\Models\Cluster;
@@ -60,6 +62,14 @@ class EnvironmentPageDataBuilder
             ->where('cluster_node.is_active', true)
             ->orderBy('cluster_node.sort_order')
             ->get();
+        $backupServers = Server::query()
+            ->select('servers.*')
+            ->join('cluster_node', 'cluster_node.server_id', '=', 'servers.id')
+            ->where('cluster_node.cluster_id', $environment->cluster_id)
+            ->where('cluster_node.is_active', true)
+            ->with(['backups' => fn ($query) => $query->latest()->limit(10)])
+            ->orderBy('cluster_node.sort_order')
+            ->get();
 
         return [
             'environment' => $environment,
@@ -78,6 +88,11 @@ class EnvironmentPageDataBuilder
             'serverRoleProfiles' => ServerRoleProfileResource::collection($serverRoleProfiles)->resolve(),
             'remoteCommands' => RemoteCommandResource::collection($remoteCommands)->resolve(),
             'environmentServers' => ServerResource::collection($environmentServers)->resolve(),
+            'domains' => DomainResource::collection($environment->domains()->with('certificate')->orderByDesc('is_primary')->orderBy('hostname')->get())->resolve(),
+            'backupServers' => $backupServers->map(fn (Server $server) => [
+                ...((new ServerResource($server))->resolve()),
+                'backups' => BackupResource::collection($server->backups)->resolve(),
+            ])->all(),
         ];
     }
 }

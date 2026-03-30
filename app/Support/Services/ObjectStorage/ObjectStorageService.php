@@ -48,6 +48,16 @@ class ObjectStorageService
         return $this->disk()->get("logs/{$path}");
     }
 
+    public function putBackup(string $path, mixed $contents): bool
+    {
+        return $this->disk()->put($path, $contents);
+    }
+
+    public function getBackup(string $path): ?string
+    {
+        return $this->disk()->get($path);
+    }
+
     public function delete(string $path): bool
     {
         return $this->disk()->delete($path);
