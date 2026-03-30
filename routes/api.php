@@ -7,6 +7,11 @@ use App\Http\Controllers\Api\AppPlatform\GitConnectionController;
 use App\Http\Controllers\Api\AppPlatform\ProcessDefinitionController;
 use App\Http\Controllers\Api\AppPlatform\ProjectController;
 use App\Http\Controllers\Api\AppPlatform\SecretController;
+use App\Http\Controllers\Api\Deployment\DeploymentController;
+use App\Http\Controllers\Api\Deployment\ReleaseController;
+use App\Http\Controllers\Api\Deployment\RemoteCommandController;
+use App\Http\Controllers\Api\Deployment\RuntimeProfileController;
+use App\Http\Controllers\Api\Deployment\ServerRoleProfileController;
 use App\Http\Controllers\Api\Infrastructure\ClusterController;
 use App\Http\Controllers\Api\Infrastructure\ProviderController;
 use App\Http\Controllers\Api\Infrastructure\ServerController;
@@ -76,6 +81,17 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
         Route::get('environments/{environment}/service-bindings', [ServiceBindingController::class, 'index'])->name('service-bindings.index');
         Route::post('environments/{environment}/service-bindings', [ServiceBindingController::class, 'store'])->name('service-bindings.store');
         Route::delete('environments/{environment}/service-bindings/{serviceBinding}', [ServiceBindingController::class, 'destroy'])->name('service-bindings.destroy');
+        Route::get('environments/{environment}/deployments', [DeploymentController::class, 'index'])->name('deployments.index');
+        Route::post('environments/{environment}/deploy', [DeploymentController::class, 'store'])->name('deployments.store');
+        Route::post('environments/{environment}/rollback', [DeploymentController::class, 'rollback'])->name('deployments.rollback');
+        Route::get('environments/{environment}/releases', [ReleaseController::class, 'index'])->name('releases.index');
+        Route::get('applications/{application}/runtime-profiles', [RuntimeProfileController::class, 'index'])->name('runtime-profiles.index');
+        Route::post('applications/{application}/runtime-profiles', [RuntimeProfileController::class, 'store'])->name('runtime-profiles.store');
+        Route::post('environments/{environment}/runtime-profile', [RuntimeProfileController::class, 'apply'])->name('runtime-profiles.apply');
+        Route::get('environments/{environment}/server-role-profiles', [ServerRoleProfileController::class, 'index'])->name('server-role-profiles.index');
+        Route::post('environments/{environment}/server-role-profiles', [ServerRoleProfileController::class, 'store'])->name('server-role-profiles.store');
+        Route::get('environments/{environment}/remote-commands', [RemoteCommandController::class, 'index'])->name('remote-commands.index');
+        Route::post('environments/{environment}/remote-commands', [RemoteCommandController::class, 'store'])->name('remote-commands.store');
     });
 
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
@@ -94,6 +110,12 @@ Route::middleware('auth.token')->prefix('v1')->name('api.')->group(function () {
     Route::get('pipeline-jobs/{pipelineJob}', [PipelineJobController::class, 'show'])->name('pipeline-jobs.show');
     Route::get('pipeline-jobs/{pipelineJob}/log', [PipelineJobController::class, 'log'])->name('pipeline-jobs.log');
     Route::get('artifacts/{artifact}', [ArtifactController::class, 'show'])->name('artifacts.show');
+    Route::get('deployments/{deployment}', [DeploymentController::class, 'show'])->name('deployments.show');
+    Route::post('deployments/{deployment}/cancel', [DeploymentController::class, 'cancel'])->name('deployments.cancel');
+    Route::get('releases/{release}', [ReleaseController::class, 'show'])->name('releases.show');
+    Route::put('runtime-profiles/{runtimeProfile}', [RuntimeProfileController::class, 'update'])->name('runtime-profiles.update');
+    Route::put('server-role-profiles/{serverRoleProfile}', [ServerRoleProfileController::class, 'update'])->name('server-role-profiles.update');
+    Route::get('remote-commands/{remoteCommand}', [RemoteCommandController::class, 'show'])->name('remote-commands.show');
 
     // Infrastructure
     Route::apiResource('providers', ProviderController::class);

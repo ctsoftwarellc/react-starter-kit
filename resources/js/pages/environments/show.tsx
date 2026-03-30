@@ -1,11 +1,22 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { Eye, Pencil, RefreshCw, Trash2, Unplug } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import {
+    Eye,
+    Pencil,
+    RefreshCw,
+    Rocket,
+    RotateCcw,
+    ShieldCheck,
+    TerminalSquare,
+    Trash2,
+    Unplug,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -17,13 +28,21 @@ import {
 } from '@/components/ui/select';
 import type {
     Application,
+    Artifact,
     CacheInstance,
     Cluster,
     DatabaseInstance,
+    Deployment,
     Environment,
     EnvironmentVariable,
+    HealthCheck,
     ProcessDefinition,
+    RemoteCommand,
+    Release,
+    RuntimeProfile,
     Secret,
+    Server,
+    ServerRoleProfile,
     ServiceBinding,
     StorageBucket,
 } from '@/types';
@@ -41,7 +60,37 @@ type Props = {
     cacheInstances: CacheInstance[];
     storageBuckets: StorageBucket[];
     serviceBindings: ServiceBinding[];
+    activeRelease: Release | null;
+    releases: Release[];
+    deployments: Deployment[];
+    healthCheck: HealthCheck | null;
+    deployableArtifacts: Artifact[];
+    runtimeProfiles: RuntimeProfile[];
+    serverRoleProfiles: ServerRoleProfile[];
+    remoteCommands: RemoteCommand[];
+    environmentServers: Server[];
 };
+
+function deploymentStatusVariant(
+    status: string,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+    switch (status) {
+        case 'active':
+        case 'succeeded':
+            return 'default';
+        case 'pending':
+        case 'preparing':
+        case 'deploying':
+        case 'verifying':
+            return 'secondary';
+        case 'failed':
+        case 'cancelled':
+        case 'rolled_back':
+            return 'destructive';
+        default:
+            return 'outline';
+    }
+}
 
 async function revealSecret(
     environmentId: string,
@@ -87,6 +136,15 @@ export default function EnvironmentShow({
     cacheInstances,
     storageBuckets,
     serviceBindings,
+    activeRelease,
+    releases,
+    deployments,
+    healthCheck,
+    deployableArtifacts,
+    runtimeProfiles,
+    serverRoleProfiles,
+    remoteCommands,
+    environmentServers,
 }: Props) {
     const [editingVariableId, setEditingVariableId] = useState<string | null>(
         null,
@@ -123,6 +181,50 @@ export default function EnvironmentShow({
         type: 'web',
         command: '',
         instances: '1',
+    });
+
+    const deployForm = useForm({
+        artifact_id: '',
+        strategy: 'rolling',
+    });
+
+    const rollbackForm = useForm({
+        release_id: '',
+    });
+
+    const healthCheckForm = useForm({
+        id: healthCheck?.id ?? '',
+        type: healthCheck?.type ?? 'http',
+        target: healthCheck?.target ?? '',
+        interval_seconds: healthCheck?.interval_seconds ?? 30,
+        timeout_seconds: healthCheck?.timeout_seconds ?? 5,
+        healthy_threshold: healthCheck?.healthy_threshold ?? 3,
+        unhealthy_threshold: healthCheck?.unhealthy_threshold ?? 2,
+        is_active: healthCheck?.is_active ?? true,
+    });
+
+    const runtimeProfileForm = useForm({
+        name: '',
+        stack: 'php-fpm',
+        config: '{"web_server":"caddy","php_version":"8.3"}',
+    });
+
+    const applyRuntimeProfileForm = useForm({
+        runtime_profile_id: environment.runtime_profile_id ?? '',
+    });
+
+    const serverRoleProfileForm = useForm({
+        role: 'web',
+        name: 'Web Nodes',
+        config: '{"packages":["caddy","php8.3-fpm"],"services":["caddy","php8.3-fpm"]}',
+    });
+
+    const remoteCommandForm = useForm({
+        server_id: '',
+        type: 'run_migrations',
+        command: '',
+        script: 'app()->environment();',
+        allow_arbitrary: false,
     });
 
     const databaseForm = useForm({
@@ -175,6 +277,20 @@ export default function EnvironmentShow({
     const processes = useMemo(
         () => environment.process_definitions ?? [],
         [environment.process_definitions],
+    );
+    const deploymentHistory = useMemo(() => deployments ?? [], [deployments]);
+    const releaseHistory = useMemo(() => releases ?? [], [releases]);
+    const runtimeProfileHistory = useMemo(
+        () => runtimeProfiles ?? [],
+        [runtimeProfiles],
+    );
+    const roleProfileHistory = useMemo(
+        () => serverRoleProfiles ?? [],
+        [serverRoleProfiles],
+    );
+    const commandHistory = useMemo(
+        () => remoteCommands ?? [],
+        [remoteCommands],
     );
 
     function saveSettings(event: React.FormEvent) {
@@ -304,6 +420,52 @@ export default function EnvironmentShow({
         router.delete(`/environments/${environment.id}`);
     }
 
+    function submitDeploy(event: React.FormEvent) {
+        event.preventDefault();
+        deployForm.post(`/environments/${environment.id}/deploy`);
+    }
+
+    function submitRollback(event: React.FormEvent) {
+        event.preventDefault();
+        rollbackForm.post(`/environments/${environment.id}/rollback`);
+    }
+
+    function saveHealthCheck(event: React.FormEvent) {
+        event.preventDefault();
+        healthCheckForm.put(`/environments/${environment.id}/health-check`);
+    }
+
+    function submitRuntimeProfile(event: React.FormEvent) {
+        event.preventDefault();
+        runtimeProfileForm.post(
+            `/environments/${environment.id}/runtime-profiles`,
+            {
+                onSuccess: () => runtimeProfileForm.reset('name'),
+            },
+        );
+    }
+
+    function applyRuntimeProfile(event: React.FormEvent) {
+        event.preventDefault();
+        applyRuntimeProfileForm.post(
+            `/environments/${environment.id}/runtime-profile/apply`,
+        );
+    }
+
+    function submitServerRoleProfile(event: React.FormEvent) {
+        event.preventDefault();
+        serverRoleProfileForm.post(
+            `/environments/${environment.id}/server-role-profiles`,
+        );
+    }
+
+    function submitRemoteCommand(event: React.FormEvent) {
+        event.preventDefault();
+        remoteCommandForm.post(
+            `/environments/${environment.id}/remote-commands`,
+        );
+    }
+
     function submitDatabase(event: React.FormEvent) {
         event.preventDefault();
         databaseForm.post('/service-management/databases', {
@@ -423,6 +585,1040 @@ export default function EnvironmentShow({
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete Environment
                     </Button>
+                </div>
+
+                <div className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr]">
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Active Release</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                                {activeRelease ? (
+                                    <>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div>
+                                                <p className="font-medium">
+                                                    Release v
+                                                    {activeRelease.version}
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    {activeRelease.artifact
+                                                        ?.pipeline_run?.pipeline
+                                                        ?.name ??
+                                                        'Deployment artifact'}
+                                                </p>
+                                            </div>
+                                            <Badge
+                                                variant={deploymentStatusVariant(
+                                                    activeRelease.status,
+                                                )}
+                                            >
+                                                {activeRelease.status}
+                                            </Badge>
+                                        </div>
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-muted-foreground">
+                                                    Artifact
+                                                </p>
+                                                <p className="mt-1 font-mono text-xs">
+                                                    {activeRelease.artifact_id}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-lg border p-3">
+                                                <p className="text-muted-foreground">
+                                                    Activated
+                                                </p>
+                                                <p className="mt-1 font-medium">
+                                                    {new Date(
+                                                        activeRelease.created_at,
+                                                    ).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="text-muted-foreground">
+                                        No release is active yet. Deploy a ready
+                                        artifact to start serving traffic.
+                                    </p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Recent Deployments</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="rounded-lg border">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b bg-muted/50">
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Deployment
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Status
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Progress
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Started
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {deploymentHistory.length > 0 ? (
+                                                deploymentHistory.map(
+                                                    (deployment) => (
+                                                        <tr
+                                                            key={deployment.id}
+                                                            className="border-b last:border-0"
+                                                        >
+                                                            <td className="px-4 py-2">
+                                                                <Link
+                                                                    href={`/deployments/${deployment.id}`}
+                                                                    className="font-medium text-primary hover:underline"
+                                                                >
+                                                                    {deployment.release
+                                                                        ? `Release v${deployment.release.version}`
+                                                                        : deployment.id}
+                                                                </Link>
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                <Badge
+                                                                    variant={deploymentStatusVariant(
+                                                                        deployment.status,
+                                                                    )}
+                                                                >
+                                                                    {
+                                                                        deployment.status
+                                                                    }
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="px-4 py-2 text-muted-foreground">
+                                                                {
+                                                                    deployment.completed_nodes
+                                                                }
+                                                                /
+                                                                {
+                                                                    deployment.total_nodes
+                                                                }{' '}
+                                                                complete
+                                                            </td>
+                                                            <td className="px-4 py-2 text-muted-foreground">
+                                                                {deployment.started_at
+                                                                    ? new Date(
+                                                                          deployment.started_at,
+                                                                      ).toLocaleString()
+                                                                    : '-'}
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        className="px-4 py-6 text-muted-foreground"
+                                                        colSpan={4}
+                                                    >
+                                                        No deployments have been
+                                                        started yet.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Recent Releases</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="rounded-lg border">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b bg-muted/50">
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Version
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Status
+                                                </th>
+                                                <th className="px-4 py-2 text-left font-medium">
+                                                    Artifact
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {releaseHistory.length > 0 ? (
+                                                releaseHistory.map(
+                                                    (release) => (
+                                                        <tr
+                                                            key={release.id}
+                                                            className="border-b last:border-0"
+                                                        >
+                                                            <td className="px-4 py-2 font-medium">
+                                                                v
+                                                                {
+                                                                    release.version
+                                                                }
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                <Badge
+                                                                    variant={deploymentStatusVariant(
+                                                                        release.status,
+                                                                    )}
+                                                                >
+                                                                    {
+                                                                        release.status
+                                                                    }
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                                                                {
+                                                                    release.artifact_id
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )
+                                            ) : (
+                                                <tr>
+                                                    <td
+                                                        className="px-4 py-6 text-muted-foreground"
+                                                        colSpan={3}
+                                                    >
+                                                        No releases created yet.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Deploy</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form
+                                    onSubmit={submitDeploy}
+                                    className="space-y-4"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="deploy-artifact">
+                                            Ready Artifact
+                                        </Label>
+                                        <Select
+                                            value={deployForm.data.artifact_id}
+                                            onValueChange={(value) =>
+                                                deployForm.setData(
+                                                    'artifact_id',
+                                                    value,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select artifact" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {deployableArtifacts.map(
+                                                    (artifact) => (
+                                                        <SelectItem
+                                                            key={artifact.id}
+                                                            value={artifact.id}
+                                                        >
+                                                            {artifact
+                                                                .pipeline_run
+                                                                ?.trigger_ref ??
+                                                                'artifact'}{' '}
+                                                            -{' '}
+                                                            {artifact.id.slice(
+                                                                0,
+                                                                8,
+                                                            )}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={
+                                                deployForm.errors.artifact_id
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                                        Rolling strategy is enabled for MVP and
+                                        will deploy nodes sequentially.
+                                    </div>
+
+                                    <Button disabled={deployForm.processing}>
+                                        <Rocket className="mr-2 h-4 w-4" />
+                                        Start Deployment
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Rollback</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form
+                                    onSubmit={submitRollback}
+                                    className="space-y-4"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="rollback-release">
+                                            Target Release
+                                        </Label>
+                                        <Select
+                                            value={rollbackForm.data.release_id}
+                                            onValueChange={(value) =>
+                                                rollbackForm.setData(
+                                                    'release_id',
+                                                    value,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select release" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {releaseHistory
+                                                    .filter(
+                                                        (release) =>
+                                                            release.id !==
+                                                            activeRelease?.id,
+                                                    )
+                                                    .map((release) => (
+                                                        <SelectItem
+                                                            key={release.id}
+                                                            value={release.id}
+                                                        >
+                                                            v{release.version} -{' '}
+                                                            {release.status}
+                                                        </SelectItem>
+                                                    ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={
+                                                rollbackForm.errors.release_id
+                                            }
+                                        />
+                                    </div>
+
+                                    <Button
+                                        variant="outline"
+                                        disabled={rollbackForm.processing}
+                                    >
+                                        <RotateCcw className="mr-2 h-4 w-4" />
+                                        Start Rollback
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Health Check</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form
+                                    onSubmit={saveHealthCheck}
+                                    className="space-y-4"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="health-check-type">
+                                            Type
+                                        </Label>
+                                        <Select
+                                            value={healthCheckForm.data.type}
+                                            onValueChange={(value) =>
+                                                healthCheckForm.setData(
+                                                    'type',
+                                                    value as 'http',
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="http">
+                                                    HTTP
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="health-check-target">
+                                            Target
+                                        </Label>
+                                        <Input
+                                            id="health-check-target"
+                                            value={healthCheckForm.data.target}
+                                            onChange={(event) =>
+                                                healthCheckForm.setData(
+                                                    'target',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="https://app.example.com/health"
+                                        />
+                                        <InputError
+                                            message={
+                                                healthCheckForm.errors.target
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="health-check-interval">
+                                                Interval Seconds
+                                            </Label>
+                                            <Input
+                                                id="health-check-interval"
+                                                type="number"
+                                                min={5}
+                                                value={
+                                                    healthCheckForm.data
+                                                        .interval_seconds
+                                                }
+                                                onChange={(event) =>
+                                                    healthCheckForm.setData(
+                                                        'interval_seconds',
+                                                        Number(
+                                                            event.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="health-check-timeout">
+                                                Timeout Seconds
+                                            </Label>
+                                            <Input
+                                                id="health-check-timeout"
+                                                type="number"
+                                                min={1}
+                                                value={
+                                                    healthCheckForm.data
+                                                        .timeout_seconds
+                                                }
+                                                onChange={(event) =>
+                                                    healthCheckForm.setData(
+                                                        'timeout_seconds',
+                                                        Number(
+                                                            event.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="health-check-healthy-threshold">
+                                                Healthy Threshold
+                                            </Label>
+                                            <Input
+                                                id="health-check-healthy-threshold"
+                                                type="number"
+                                                min={1}
+                                                value={
+                                                    healthCheckForm.data
+                                                        .healthy_threshold
+                                                }
+                                                onChange={(event) =>
+                                                    healthCheckForm.setData(
+                                                        'healthy_threshold',
+                                                        Number(
+                                                            event.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="health-check-unhealthy-threshold">
+                                                Unhealthy Threshold
+                                            </Label>
+                                            <Input
+                                                id="health-check-unhealthy-threshold"
+                                                type="number"
+                                                min={1}
+                                                value={
+                                                    healthCheckForm.data
+                                                        .unhealthy_threshold
+                                                }
+                                                onChange={(event) =>
+                                                    healthCheckForm.setData(
+                                                        'unhealthy_threshold',
+                                                        Number(
+                                                            event.target.value,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 rounded-lg border p-3">
+                                        <Checkbox
+                                            id="health-check-active"
+                                            checked={
+                                                healthCheckForm.data.is_active
+                                            }
+                                            onCheckedChange={(value) =>
+                                                healthCheckForm.setData(
+                                                    'is_active',
+                                                    value === true,
+                                                )
+                                            }
+                                        />
+                                        <Label htmlFor="health-check-active">
+                                            Enable post-deploy verification
+                                        </Label>
+                                    </div>
+
+                                    <Button
+                                        disabled={healthCheckForm.processing}
+                                    >
+                                        <ShieldCheck className="mr-2 h-4 w-4" />
+                                        Save Health Check
+                                    </Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Runtime Profiles</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <form
+                                    onSubmit={applyRuntimeProfile}
+                                    className="space-y-4 rounded-lg border p-4"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="runtime-profile-apply">
+                                            Assigned Profile
+                                        </Label>
+                                        <Select
+                                            value={
+                                                applyRuntimeProfileForm.data
+                                                    .runtime_profile_id
+                                            }
+                                            onValueChange={(value) =>
+                                                applyRuntimeProfileForm.setData(
+                                                    'runtime_profile_id',
+                                                    value,
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select runtime profile" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {runtimeProfileHistory.map(
+                                                    (profile) => (
+                                                        <SelectItem
+                                                            key={profile.id}
+                                                            value={profile.id}
+                                                        >
+                                                            {profile.name} -{' '}
+                                                            {profile.stack}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={
+                                                applyRuntimeProfileForm.errors
+                                                    .runtime_profile_id
+                                            }
+                                        />
+                                    </div>
+                                    <Button
+                                        disabled={
+                                            applyRuntimeProfileForm.processing
+                                        }
+                                    >
+                                        Apply Runtime Profile
+                                    </Button>
+                                </form>
+
+                                <form
+                                    onSubmit={submitRuntimeProfile}
+                                    className="grid gap-4 rounded-lg border p-4"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="runtime-profile-name">
+                                            New Profile Name
+                                        </Label>
+                                        <Input
+                                            id="runtime-profile-name"
+                                            value={runtimeProfileForm.data.name}
+                                            onChange={(event) =>
+                                                runtimeProfileForm.setData(
+                                                    'name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="runtime-profile-stack">
+                                            Stack
+                                        </Label>
+                                        <Select
+                                            value={
+                                                runtimeProfileForm.data.stack
+                                            }
+                                            onValueChange={(value) =>
+                                                runtimeProfileForm.setData(
+                                                    'stack',
+                                                    value as RuntimeProfile['stack'],
+                                                )
+                                            }
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Select stack" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="php-fpm">
+                                                    PHP-FPM
+                                                </SelectItem>
+                                                <SelectItem value="nginx">
+                                                    Nginx
+                                                </SelectItem>
+                                                <SelectItem value="caddy">
+                                                    Caddy
+                                                </SelectItem>
+                                                <SelectItem value="node">
+                                                    Node
+                                                </SelectItem>
+                                                <SelectItem value="supervisor">
+                                                    Supervisor
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="runtime-profile-config">
+                                            Config JSON
+                                        </Label>
+                                        <textarea
+                                            id="runtime-profile-config"
+                                            className="min-h-28 rounded-md border bg-background px-3 py-2 text-sm"
+                                            value={
+                                                runtimeProfileForm.data.config
+                                            }
+                                            onChange={(event) =>
+                                                runtimeProfileForm.setData(
+                                                    'config',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <Button
+                                        disabled={runtimeProfileForm.processing}
+                                    >
+                                        Create Runtime Profile
+                                    </Button>
+                                </form>
+
+                                <div className="space-y-2">
+                                    {runtimeProfileHistory.map((profile) => (
+                                        <div
+                                            key={profile.id}
+                                            className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
+                                        >
+                                            <div>
+                                                <p className="font-medium">
+                                                    {profile.name}
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    {profile.stack}
+                                                </p>
+                                            </div>
+                                            <Badge
+                                                variant={
+                                                    environment.runtime_profile_id ===
+                                                    profile.id
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
+                                            >
+                                                {environment.runtime_profile_id ===
+                                                profile.id
+                                                    ? 'Assigned'
+                                                    : 'Available'}
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Server Role Profiles</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <form
+                                    onSubmit={submitServerRoleProfile}
+                                    className="grid gap-4 rounded-lg border p-4"
+                                >
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="role-profile-role">
+                                                Role
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    serverRoleProfileForm.data
+                                                        .role
+                                                }
+                                                onValueChange={(value) =>
+                                                    serverRoleProfileForm.setData(
+                                                        'role',
+                                                        value as ServerRoleProfile['role'],
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select role" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="web">
+                                                        Web
+                                                    </SelectItem>
+                                                    <SelectItem value="worker">
+                                                        Worker
+                                                    </SelectItem>
+                                                    <SelectItem value="db">
+                                                        DB
+                                                    </SelectItem>
+                                                    <SelectItem value="cache">
+                                                        Cache
+                                                    </SelectItem>
+                                                    <SelectItem value="queue">
+                                                        Queue
+                                                    </SelectItem>
+                                                    <SelectItem value="bastion">
+                                                        Bastion
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="role-profile-name">
+                                                Name
+                                            </Label>
+                                            <Input
+                                                id="role-profile-name"
+                                                value={
+                                                    serverRoleProfileForm.data
+                                                        .name
+                                                }
+                                                onChange={(event) =>
+                                                    serverRoleProfileForm.setData(
+                                                        'name',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="role-profile-config">
+                                            Config JSON
+                                        </Label>
+                                        <textarea
+                                            id="role-profile-config"
+                                            className="min-h-28 rounded-md border bg-background px-3 py-2 text-sm"
+                                            value={
+                                                serverRoleProfileForm.data
+                                                    .config
+                                            }
+                                            onChange={(event) =>
+                                                serverRoleProfileForm.setData(
+                                                    'config',
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <Button
+                                        disabled={
+                                            serverRoleProfileForm.processing
+                                        }
+                                    >
+                                        Save Role Profile
+                                    </Button>
+                                </form>
+
+                                <div className="space-y-2">
+                                    {roleProfileHistory.map((profile) => (
+                                        <div
+                                            key={profile.id}
+                                            className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
+                                        >
+                                            <div>
+                                                <p className="font-medium">
+                                                    {profile.name}
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    {profile.role}
+                                                </p>
+                                            </div>
+                                            <Badge variant="outline">
+                                                Queued to apply
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Commands</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <form
+                                    onSubmit={submitRemoteCommand}
+                                    className="grid gap-4 rounded-lg border p-4"
+                                >
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="remote-command-type">
+                                                Template
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    remoteCommandForm.data.type
+                                                }
+                                                onValueChange={(value) =>
+                                                    remoteCommandForm.setData(
+                                                        'type',
+                                                        value as RemoteCommand['type'],
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Select command" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="run_migrations">
+                                                        Run migrations
+                                                    </SelectItem>
+                                                    <SelectItem value="clear_cache">
+                                                        Clear cache
+                                                    </SelectItem>
+                                                    <SelectItem value="restart_workers">
+                                                        Restart workers
+                                                    </SelectItem>
+                                                    <SelectItem value="artisan_tinker">
+                                                        Artisan tinker snippet
+                                                    </SelectItem>
+                                                    <SelectItem value="custom">
+                                                        Custom shell command
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="remote-command-server">
+                                                Target Server
+                                            </Label>
+                                            <Select
+                                                value={
+                                                    remoteCommandForm.data
+                                                        .server_id
+                                                }
+                                                onValueChange={(value) =>
+                                                    remoteCommandForm.setData(
+                                                        'server_id',
+                                                        value === 'auto'
+                                                            ? ''
+                                                            : value,
+                                                    )
+                                                }
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder="Auto-select app server" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="auto">
+                                                        Auto-select app server
+                                                    </SelectItem>
+                                                    {environmentServers.map(
+                                                        (server) => (
+                                                            <SelectItem
+                                                                key={server.id}
+                                                                value={
+                                                                    server.id
+                                                                }
+                                                            >
+                                                                {server.name}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
+                                    {remoteCommandForm.data.type ===
+                                    'artisan_tinker' ? (
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="remote-command-script">
+                                                Tinker Snippet
+                                            </Label>
+                                            <Input
+                                                id="remote-command-script"
+                                                value={
+                                                    remoteCommandForm.data
+                                                        .script
+                                                }
+                                                onChange={(event) =>
+                                                    remoteCommandForm.setData(
+                                                        'script',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    ) : null}
+
+                                    {remoteCommandForm.data.type ===
+                                    'custom' ? (
+                                        <>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="remote-command-custom">
+                                                    Custom Command
+                                                </Label>
+                                                <Input
+                                                    id="remote-command-custom"
+                                                    value={
+                                                        remoteCommandForm.data
+                                                            .command
+                                                    }
+                                                    onChange={(event) =>
+                                                        remoteCommandForm.setData(
+                                                            'command',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-3 rounded-lg border p-3 text-sm">
+                                                <Checkbox
+                                                    id="remote-command-allow-arbitrary"
+                                                    checked={
+                                                        remoteCommandForm.data
+                                                            .allow_arbitrary
+                                                    }
+                                                    onCheckedChange={(value) =>
+                                                        remoteCommandForm.setData(
+                                                            'allow_arbitrary',
+                                                            value === true,
+                                                        )
+                                                    }
+                                                />
+                                                <Label htmlFor="remote-command-allow-arbitrary">
+                                                    I understand this bypasses
+                                                    the safe templates.
+                                                </Label>
+                                            </div>
+                                        </>
+                                    ) : null}
+
+                                    <InputError
+                                        message={
+                                            remoteCommandForm.errors.command ??
+                                            remoteCommandForm.errors.script
+                                        }
+                                    />
+
+                                    <Button
+                                        disabled={remoteCommandForm.processing}
+                                    >
+                                        <TerminalSquare className="mr-2 h-4 w-4" />
+                                        Run Command
+                                    </Button>
+                                </form>
+
+                                <div className="space-y-2">
+                                    {commandHistory.length > 0 ? (
+                                        commandHistory.map((command) => (
+                                            <div
+                                                key={command.id}
+                                                className="rounded-lg border p-3 text-sm"
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div>
+                                                        <p className="font-medium">
+                                                            {command.type.replaceAll(
+                                                                '_',
+                                                                ' ',
+                                                            )}
+                                                        </p>
+                                                        <p className="font-mono text-xs text-muted-foreground">
+                                                            {command.command}
+                                                        </p>
+                                                    </div>
+                                                    <Badge
+                                                        variant={deploymentStatusVariant(
+                                                            command.status,
+                                                        )}
+                                                    >
+                                                        {command.status}
+                                                    </Badge>
+                                                </div>
+                                                <p className="mt-2 text-xs text-muted-foreground">
+                                                    {command.server?.name ??
+                                                        'Auto-selected server'}
+                                                </p>
+                                                {command.output ? (
+                                                    <div className="mt-3 rounded-md bg-muted p-2 font-mono text-xs">
+                                                        {command.output}
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            No remote commands yet. Start with a
+                                            safe template to keep changes
+                                            auditable.
+                                        </p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-[0.95fr,1.05fr]">

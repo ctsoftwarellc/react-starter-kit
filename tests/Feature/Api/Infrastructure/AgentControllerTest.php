@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Api\Infrastructure;
 
+use App\Modules\AppPlatform\Models\Environment;
+use App\Modules\Deployment\Enums\RemoteCommandStatus;
+use App\Modules\Deployment\Models\RemoteCommand;
 use App\Modules\Infrastructure\Enums\AgentCommandStatus;
 use App\Modules\Infrastructure\Enums\AgentCommandType;
 use App\Modules\Infrastructure\Models\AgentCommand;
@@ -123,6 +126,41 @@ class AgentControllerTest extends TestCase
         $this->assertEquals(AgentCommandStatus::Completed, $command->status);
         $this->assertEquals(['output' => 'Success'], $command->result);
         $this->assertNotNull($command->completed_at);
+    }
+
+    public function test_reporting_remote_command_result_updates_remote_command_history(): void
+    {
+        [$server, $token] = $this->createServerWithToken();
+
+        $environment = Environment::factory()->create();
+
+        $remoteCommand = RemoteCommand::factory()->create([
+            'environment_id' => $environment->id,
+            'server_id' => $server->id,
+        ]);
+
+        $command = AgentCommand::create([
+            'id' => Str::ulid()->toString(),
+            'server_id' => $server->id,
+            'type' => AgentCommandType::RemoteCommand,
+            'payload' => ['remote_command_id' => $remoteCommand->id],
+            'status' => AgentCommandStatus::Pending,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/agent/commands/'.$command->id.'/result', [
+                'status' => 'completed',
+                'result' => ['output' => 'Done', 'exit_code' => 0],
+            ])
+            ->assertOk();
+
+        $remoteCommand->refresh();
+
+        $this->assertEquals(RemoteCommandStatus::Succeeded, $remoteCommand->status);
+        $this->assertEquals('Done', $remoteCommand->output);
+        $this->assertEquals(0, $remoteCommand->exit_code);
+        $this->assertNotNull($remoteCommand->finished_at);
     }
 
     public function test_invalid_token_returns_401(): void

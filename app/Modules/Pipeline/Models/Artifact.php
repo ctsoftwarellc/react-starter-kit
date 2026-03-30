@@ -3,6 +3,7 @@
 namespace App\Modules\Pipeline\Models;
 
 use App\Modules\AppPlatform\Models\Application;
+use App\Modules\Deployment\Models\Release;
 use App\Modules\Pipeline\Enums\ArtifactStatus;
 use App\Support\Concerns\HasStateMachine;
 use App\Support\Concerns\HasUlid;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Artifact extends Model
 {
@@ -35,6 +37,11 @@ class Artifact extends Model
     public function application(): BelongsTo
     {
         return $this->belongsTo(Application::class);
+    }
+
+    public function releases(): HasMany
+    {
+        return $this->hasMany(Release::class);
     }
 
     public function scopeForApplication(Builder $query, Application $application): Builder

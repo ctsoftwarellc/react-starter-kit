@@ -3,6 +3,7 @@
 use App\Http\Controllers\Web\ActivityWebController;
 use App\Http\Controllers\Web\ApplicationWebController;
 use App\Http\Controllers\Web\ClusterWebController;
+use App\Http\Controllers\Web\DeploymentWebController;
 use App\Http\Controllers\Web\EnvironmentWebController;
 use App\Http\Controllers\Web\GitConnectionWebController;
 use App\Http\Controllers\Web\PipelineRunWebController;
@@ -35,6 +36,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('environments/{environment}', [EnvironmentWebController::class, 'show'])->name('environments.show');
         Route::put('environments/{environment}', [EnvironmentWebController::class, 'update'])->name('environments.update');
         Route::delete('environments/{environment}', [EnvironmentWebController::class, 'destroy'])->name('environments.destroy');
+        Route::post('environments/{environment}/deploy', [EnvironmentWebController::class, 'deploy'])->name('environments.deploy');
+        Route::post('environments/{environment}/rollback', [EnvironmentWebController::class, 'rollback'])->name('environments.rollback');
+        Route::put('environments/{environment}/health-check', [EnvironmentWebController::class, 'upsertHealthCheck'])->name('environments.health-check');
+        Route::post('environments/{environment}/runtime-profiles', [EnvironmentWebController::class, 'storeRuntimeProfile'])->name('environments.runtime-profiles.store');
+        Route::put('environments/{environment}/runtime-profiles/{runtimeProfile}', [EnvironmentWebController::class, 'updateRuntimeProfile'])->name('environments.runtime-profiles.update');
+        Route::post('environments/{environment}/runtime-profile/apply', [EnvironmentWebController::class, 'applyRuntimeProfile'])->name('environments.runtime-profiles.apply');
+        Route::post('environments/{environment}/server-role-profiles', [EnvironmentWebController::class, 'upsertServerRoleProfile'])->name('environments.server-role-profiles.store');
+        Route::put('environments/{environment}/server-role-profiles/{serverRoleProfile}', [EnvironmentWebController::class, 'updateServerRoleProfile'])->name('environments.server-role-profiles.update');
+        Route::post('environments/{environment}/remote-commands', [EnvironmentWebController::class, 'executeRemoteCommand'])->name('environments.remote-commands.store');
         Route::post('environments/{environment}/variables', [EnvironmentWebController::class, 'storeVariable'])->name('environment-variables.store');
         Route::put('environments/{environment}/variables/{variable}', [EnvironmentWebController::class, 'updateVariable'])->name('environment-variables.update');
         Route::delete('environments/{environment}/variables/{variable}', [EnvironmentWebController::class, 'destroyVariable'])->name('environment-variables.destroy');
@@ -57,6 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('environments/{environment}/service-bindings', [ServiceManagementWebController::class, 'storeBinding'])->name('environment-service-bindings.store');
         Route::delete('environments/{environment}/service-bindings/{serviceBinding}', [ServiceManagementWebController::class, 'destroyBinding'])->name('environment-service-bindings.destroy');
         Route::get('pipeline-runs/{pipelineRun}', [PipelineRunWebController::class, 'show'])->name('pipeline-runs.show');
+        Route::get('deployments/{deployment}', [DeploymentWebController::class, 'show'])->name('deployments.show');
     });
 
     Route::resource('servers', ServerWebController::class)->only(['index', 'create', 'store', 'show']);

@@ -3,6 +3,7 @@
 namespace App\Modules\AppPlatform\Models;
 
 use App\Modules\AppPlatform\Enums\Runtime;
+use App\Modules\Deployment\Models\RuntimeProfile;
 use App\Modules\Pipeline\Models\Artifact;
 use App\Modules\Pipeline\Models\Pipeline;
 use App\Modules\Pipeline\Models\Webhook;
@@ -57,6 +58,11 @@ class Application extends Model
     public function artifacts(): HasMany
     {
         return $this->hasMany(Artifact::class);
+    }
+
+    public function runtimeProfiles(): HasMany
+    {
+        return $this->hasMany(RuntimeProfile::class);
     }
 
     public function scopeForProject(Builder $query, Project $project): Builder

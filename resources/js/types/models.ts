@@ -49,6 +49,48 @@ export type Application = {
     pipelines?: Pipeline[];
     environments_count?: number;
     webhooks?: Webhook[];
+    runtime_profiles?: RuntimeProfile[];
+    created_at: string;
+    updated_at: string;
+};
+
+export type RuntimeProfile = {
+    id: string;
+    application_id: string;
+    name: string;
+    stack: 'php-fpm' | 'nginx' | 'caddy' | 'node' | 'supervisor';
+    config: Record<string, unknown>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ServerRoleProfile = {
+    id: string;
+    environment_id: string;
+    role: 'web' | 'worker' | 'db' | 'cache' | 'queue' | 'bastion';
+    name: string;
+    config: Record<string, unknown>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type RemoteCommand = {
+    id: string;
+    environment_id: string;
+    server_id: string | null;
+    type:
+        | 'run_migrations'
+        | 'clear_cache'
+        | 'restart_workers'
+        | 'artisan_tinker'
+        | 'custom';
+    command: string;
+    status: 'pending' | 'running' | 'succeeded' | 'failed' | 'timed_out';
+    output: string | null;
+    exit_code: number | null;
+    started_at: string | null;
+    finished_at: string | null;
+    server?: Server | null;
     created_at: string;
     updated_at: string;
 };
@@ -136,6 +178,66 @@ export type Artifact = {
     metadata: Record<string, unknown>;
     pipeline_run?: PipelineRun;
     application?: Application;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Release = {
+    id: string;
+    environment_id: string;
+    artifact_id: string;
+    version: number;
+    status: string;
+    config_snapshot: Record<string, unknown>;
+    deployed_by: string | null;
+    environment?: Environment;
+    artifact?: Artifact | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type DeploymentStep = {
+    id: string;
+    deployment_id: string;
+    server_id: string;
+    status: string;
+    started_at: string | null;
+    finished_at: string | null;
+    output: string | null;
+    server?: Server;
+    created_at: string;
+    updated_at: string;
+};
+
+export type Deployment = {
+    id: string;
+    release_id: string;
+    environment_id: string;
+    status: string;
+    strategy: string;
+    total_nodes: number;
+    completed_nodes: number;
+    failed_nodes: number;
+    started_at: string | null;
+    finished_at: string | null;
+    initiated_by: string | null;
+    release?: Release;
+    environment?: Environment;
+    steps?: DeploymentStep[];
+    created_at: string;
+    updated_at: string;
+};
+
+export type HealthCheck = {
+    id: string;
+    environment_id: string;
+    type: 'http' | 'tcp' | 'command';
+    target: string;
+    interval_seconds: number;
+    timeout_seconds: number;
+    healthy_threshold: number;
+    unhealthy_threshold: number;
+    is_active: boolean;
     created_at: string;
     updated_at: string;
 };
@@ -263,12 +365,21 @@ export type Environment = {
     id: string;
     application_id: string;
     cluster_id: string;
+    active_release_id?: string | null;
+    runtime_profile_id?: string | null;
     name: string;
     type: 'production' | 'staging' | 'preview';
     is_auto_deploy: boolean;
     branch: string | null;
     application?: Application;
     cluster?: Cluster;
+    active_release?: Release | null;
+    runtime_profile?: RuntimeProfile | null;
+    releases?: Release[];
+    deployments?: Deployment[];
+    health_checks?: HealthCheck[];
+    server_role_profiles?: ServerRoleProfile[];
+    remote_commands?: RemoteCommand[];
     variables?: EnvironmentVariable[];
     secrets?: Secret[];
     process_definitions?: ProcessDefinition[];

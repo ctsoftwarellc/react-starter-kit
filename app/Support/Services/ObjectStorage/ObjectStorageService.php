@@ -2,12 +2,12 @@
 
 namespace App\Support\Services\ObjectStorage;
 
-use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 
 class ObjectStorageService
 {
-    public function disk(): Filesystem
+    public function disk(): FilesystemAdapter
     {
         return Storage::disk(config('helm.storage_disk'));
     }
@@ -24,7 +24,13 @@ class ObjectStorageService
 
     public function artifactUrl(string $path): string
     {
-        return $this->disk()->temporaryUrl("artifacts/{$path}", now()->addHour());
+        $artifactPath = "artifacts/{$path}";
+
+        try {
+            return $this->disk()->temporaryUrl($artifactPath, now()->addHour());
+        } catch (\RuntimeException) {
+            return $this->disk()->url($artifactPath);
+        }
     }
 
     public function putLog(string $path, string $contents): bool

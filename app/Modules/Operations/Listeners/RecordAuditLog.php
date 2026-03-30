@@ -9,6 +9,11 @@ use App\Modules\AppPlatform\Events\ProjectCreated;
 use App\Modules\AppPlatform\Events\ProjectDeleted;
 use App\Modules\AppPlatform\Events\ProjectUpdated;
 use App\Modules\AppPlatform\Events\SecretUpdated;
+use App\Modules\Deployment\Events\DeploymentCompleted;
+use App\Modules\Deployment\Events\DeploymentFailed;
+use App\Modules\Deployment\Events\DeploymentStarted;
+use App\Modules\Deployment\Events\RemoteCommandExecuted;
+use App\Modules\Deployment\Events\RollbackCompleted;
 use App\Modules\Infrastructure\Events\ClusterTopologyChanged;
 use App\Modules\Infrastructure\Events\ProviderCreated;
 use App\Modules\Infrastructure\Events\ProviderDeleted;
@@ -43,6 +48,11 @@ class RecordAuditLog
         PipelineRunCompleted::class => 'pipeline_run.completed',
         PipelineJobCompleted::class => 'pipeline_job.completed',
         ArtifactCreated::class => 'artifact.created',
+        DeploymentStarted::class => 'deployment.started',
+        DeploymentCompleted::class => 'deployment.completed',
+        DeploymentFailed::class => 'deployment.failed',
+        RollbackCompleted::class => 'deployment.rollback_completed',
+        RemoteCommandExecuted::class => 'remote_command.executed',
     ];
 
     public function handle(object $event): void
@@ -77,6 +87,8 @@ class RecordAuditLog
             ?? $event->pipelineRun
             ?? $event->pipelineJob
             ?? $event->artifact
+            ?? $event->deployment
+            ?? $event->remoteCommand
             ?? null;
     }
 
@@ -201,6 +213,25 @@ class RecordAuditLog
                 'status' => $event->artifact->status->value,
                 'content_hash' => $event->artifact->content_hash,
                 'size_bytes' => $event->artifact->size_bytes,
+            ]];
+        }
+
+        if ($event instanceof DeploymentStarted || $event instanceof DeploymentCompleted || $event instanceof DeploymentFailed || $event instanceof RollbackCompleted) {
+            return [null, [
+                'status' => $event->deployment->status->value,
+                'release_id' => $event->deployment->release_id,
+                'environment_id' => $event->deployment->environment_id,
+                'strategy' => $event->deployment->strategy->value,
+            ]];
+        }
+
+        if ($event instanceof RemoteCommandExecuted) {
+            return [null, [
+                'environment_id' => $event->remoteCommand->environment_id,
+                'server_id' => $event->remoteCommand->server_id,
+                'type' => $event->remoteCommand->type->value,
+                'command' => $event->remoteCommand->command,
+                'status' => $event->remoteCommand->status->value,
             ]];
         }
 

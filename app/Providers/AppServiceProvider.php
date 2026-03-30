@@ -11,6 +11,13 @@ use App\Modules\AppPlatform\Events\ProjectUpdated;
 use App\Modules\AppPlatform\Events\SecretUpdated;
 use App\Modules\AppPlatform\Listeners\CreateDefaultEnvironment;
 use App\Modules\AppPlatform\Listeners\SetupApplicationWebhook;
+use App\Modules\Deployment\Events\DeploymentCompleted;
+use App\Modules\Deployment\Events\DeploymentFailed;
+use App\Modules\Deployment\Events\DeploymentStarted;
+use App\Modules\Deployment\Events\RemoteCommandExecuted;
+use App\Modules\Deployment\Events\RollbackCompleted;
+use App\Modules\Deployment\Listeners\CleanupOldReleases;
+use App\Modules\Deployment\Listeners\TriggerRollback;
 use App\Modules\Infrastructure\Events\ClusterTopologyChanged;
 use App\Modules\Infrastructure\Events\ProviderCreated;
 use App\Modules\Infrastructure\Events\ProviderDeleted;
@@ -75,12 +82,19 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PipelineRunCompleted::class, [RecordAuditLog::class, 'handle']);
         Event::listen(PipelineJobCompleted::class, [RecordAuditLog::class, 'handle']);
         Event::listen(ArtifactCreated::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(DeploymentStarted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(DeploymentCompleted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(DeploymentFailed::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(RollbackCompleted::class, [RecordAuditLog::class, 'handle']);
+        Event::listen(RemoteCommandExecuted::class, [RecordAuditLog::class, 'handle']);
 
         // Infrastructure events → Domain listeners
         Event::listen(ServerBootstrapped::class, [UpdateClusterStatus::class, 'handle']);
         Event::listen(ServerHealthChanged::class, [UpdateClusterStatus::class, 'handle']);
         Event::listen(ServerBootstrapped::class, [PushSshKeysOnBootstrap::class, 'handle']);
         Event::listen(PipelineJobCompleted::class, [WakeOrchestrator::class, 'handle']);
+        Event::listen(DeploymentCompleted::class, [CleanupOldReleases::class, 'handle']);
+        Event::listen(DeploymentFailed::class, [TriggerRollback::class, 'handle']);
 
         // AppPlatform events → Domain listeners
         Event::listen(ApplicationCreated::class, [CreateDefaultEnvironment::class, 'handle']);

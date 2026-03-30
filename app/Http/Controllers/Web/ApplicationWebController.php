@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AppPlatform\CreateApplicationRequest;
 use App\Http\Requests\AppPlatform\UpdateApplicationRequest;
+use App\Http\Resources\Deployment\DeploymentResource;
 use App\Modules\AppPlatform\Actions\CreateApplication;
 use App\Modules\AppPlatform\Actions\DeleteApplication;
 use App\Modules\AppPlatform\Actions\UpdateApplication;
@@ -13,6 +14,7 @@ use App\Modules\AppPlatform\DTOs\UpdateApplicationData;
 use App\Modules\AppPlatform\Models\Application;
 use App\Modules\AppPlatform\Models\GitConnection;
 use App\Modules\AppPlatform\Models\Project;
+use App\Modules\Deployment\Models\Deployment;
 use App\Modules\Infrastructure\Models\Cluster;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -45,17 +47,26 @@ class ApplicationWebController extends Controller
             'project',
             'gitConnection',
             'environments.cluster',
+            'environments.activeRelease.artifact.pipelineRun.pipeline',
             'webhooks',
             'pipelines' => fn ($query) => $query
                 ->with(['runs' => fn ($runQuery) => $runQuery->latestFirst()->with(['environment', 'artifact'])->limit(5)])
                 ->latest(),
         ]);
 
+        $deployments = Deployment::query()
+            ->whereHas('environment', fn ($query) => $query->where('application_id', $application->id))
+            ->with(['environment', 'release.artifact.pipelineRun.pipeline'])
+            ->latestFirst()
+            ->limit(12)
+            ->get();
+
         return Inertia::render('applications/show', [
             'application' => $application,
             'project' => $application->project,
             'gitConnections' => GitConnection::latest()->get(),
             'clusters' => Cluster::latest()->get(),
+            'deployments' => DeploymentResource::collection($deployments)->resolve(),
         ]);
     }
 

@@ -387,99 +387,102 @@
 
 ## Phase 5: Deployment Engine
 
-**Status: NOT STARTED**
+**Status: COMPLETE**
 
 ### 5.1 Releases
 
-- [ ] Migration: `create_releases_table`
-- [ ] Model: `Release.php` (HasStateMachine, config_snapshot jsonb)
-- [ ] Enum: `ReleaseStatus` (pending, deploying, active, superseded, rolled_back, failed)
-- [ ] State machine transitions (architecture doc Section 7.7)
-- [ ] Action: `CreateRelease` (snapshot env vars, secrets keys, processes, runtime config)
-- [ ] Controller, Resources
-- [ ] Tests
+- [x] Migration: `create_releases_table`
+- [x] Model: `Release.php` (HasStateMachine, config_snapshot jsonb)
+- [x] Enum: `ReleaseStatus` (pending, deploying, active, superseded, rolled_back, failed)
+- [x] State machine transitions (architecture doc Section 7.7)
+- [x] Action: `CreateRelease` (snapshot env vars, secrets keys, processes, runtime config)
+- [x] Controller, Resources
+- [x] Tests
 
 ### 5.2 Deployments
 
-- [ ] Migration: `create_deployments_table`, `create_deployment_steps_table`
-- [ ] Model: `Deployment.php` (HasStateMachine), `DeploymentStep.php`
-- [ ] Enum: `DeploymentStatus` (pending, preparing, deploying, verifying, succeeded, failed, cancelled, rolled_back)
-- [ ] Enum: `DeploymentStrategy` (rolling, blue_green, canary)
-- [ ] State machine transitions (architecture doc Section 7.6)
-- [ ] Action: `InitiateDeployment` (create release if needed, create deployment + steps)
-- [ ] Action: `DeployToNode` (send command to agent)
-- [ ] Action: `ActivateRelease` (mark active, supersede previous)
-- [ ] Service: `DeploymentCoordinator` (rolling deploy logic — resolve nodes, sequence, coordinate)
-- [ ] Service: `RollbackManager` (automatic + manual rollback logic)
-- [ ] Job: `ExecuteDeployment` (on deployment queue — orchestrate full rolling deploy)
-- [ ] Job: `RunPostDeployHealthCheck`
-- [ ] Job: `ExecuteRollback`
-- [ ] Event: `DeploymentStarted`, `DeploymentCompleted`, `DeploymentFailed`, `RollbackCompleted`
-- [ ] Controller: initiate deploy, show deployment, cancel, rollback
-- [ ] Tests: rolling deploy coordination, health check pass/fail, rollback flow
-- [ ] UI: deploy button on environment detail
-- [ ] UI: deployment detail (per-node progress, status badges)
-- [ ] UI: deployment history list
-- [ ] UI: rollback button + release selector
+- [x] Migration: `create_deployments_table`, `create_deployment_steps_table`
+- [x] Model: `Deployment.php` (HasStateMachine), `DeploymentStep.php`
+- [x] Enum: `DeploymentStatus` (pending, preparing, deploying, verifying, succeeded, failed, cancelled, rolled_back)
+- [x] Enum: `DeploymentStrategy` (rolling, blue_green, canary)
+- [x] State machine transitions (architecture doc Section 7.6)
+- [x] Action: `InitiateDeployment` (create release if needed, create deployment + steps)
+- [x] Action: `DeployToNode` (send command to agent)
+- [x] Action: `ActivateRelease` (mark active, supersede previous)
+- [x] Service: `DeploymentCoordinator` (rolling deploy logic — resolve nodes, sequence, coordinate)
+- [x] Service: `RollbackManager` (automatic + manual rollback logic)
+- [x] Job: `ExecuteDeployment` (on deployment queue — orchestrate full rolling deploy)
+- [x] Job: `RunPostDeployHealthCheck`
+- [x] Job: `ExecuteRollback`
+- [x] Event: `DeploymentStarted`, `DeploymentCompleted`, `DeploymentFailed`, `RollbackCompleted`
+- [x] Controller: initiate deploy, show deployment, cancel, rollback
+- [x] Tests: rolling deploy coordination, health check pass/fail, rollback flow
+- [x] UI: deploy button on environment detail
+- [x] UI: deployment detail (per-node progress, status badges)
+- [x] UI: deployment history list
+- [x] UI: rollback button + release selector
 
 ### 5.3 Application Server Configuration
 
-- [ ] Migration: `create_runtime_profiles_table`
-- [ ] Migration: `create_server_role_profiles_table`
-- [ ] Model: `RuntimeProfile.php`, `ServerRoleProfile.php`
-- [ ] Support configurable runtime stacks per application/environment (`php-fpm`, `nginx`, `caddy`, `node`, `supervisor`)
-- [ ] Support role-specific install profiles for `web`, `worker`, `queue`, `db`, and `cache` nodes
-- [ ] Action: `CreateRuntimeProfile`, `UpdateRuntimeProfile`, `ApplyRuntimeProfile`
-- [ ] Action: `CreateServerRoleProfile`, `UpdateServerRoleProfile`, `ApplyServerRoleProfile`
-- [ ] Agent command type: `configure_runtime`
-- [ ] Agent command type: `configure_service`
-- [ ] Generate role-specific config for app servers, workers, databases, and caches
-- [ ] Support dedicated client stacks by assigning an environment to its own cluster and service set
-- [ ] Tests: runtime rendering, role profile application, dedicated-stack isolation
-- [ ] UI: runtime profile editor and role profile editor
-- [ ] UI: environment option to use shared cluster or dedicated client infrastructure
+- [x] Migration: `create_runtime_profiles_table`
+- [x] Migration: `create_server_role_profiles_table`
+- [x] Model: `RuntimeProfile.php`, `ServerRoleProfile.php`
+- [x] Support configurable runtime stacks per application/environment (`php-fpm`, `nginx`, `caddy`, `node`, `supervisor`)
+- [x] Support role-specific install profiles for `web`, `worker`, `queue`, `db`, and `cache` nodes
+- [x] Action: `CreateRuntimeProfile`, `UpdateRuntimeProfile`, `ApplyRuntimeProfile`
+- [x] Action: `CreateServerRoleProfile`, `UpdateServerRoleProfile`, `ApplyServerRoleProfile`
+- [x] Agent command type: `configure_runtime`
+- [x] Agent command type: `configure_service`
+- [x] Generate role-specific config for app servers, workers, databases, and caches
+- [x] Support dedicated client stacks by assigning an environment to its own cluster and service set
+- [x] Tests: runtime rendering, role profile application, dedicated-stack isolation
+- [x] UI: runtime profile editor and role profile editor
+- [x] UI: environment option to use shared cluster or dedicated client infrastructure
 
 ### 5.4 Health Checks
 
-- [ ] Migration: `create_health_checks_table`
-- [ ] Model: `HealthCheck.php`
-- [ ] Action: `RunHealthCheck` (HTTP GET to target, evaluate thresholds)
-- [ ] Configure health check per environment
-- [ ] UI: health check config on environment detail
+- [x] Migration: `create_health_checks_table`
+- [x] Model: `HealthCheck.php`
+- [x] Action: `RunHealthCheck` (HTTP GET to target, evaluate thresholds)
+- [x] Configure health check per environment
+- [x] UI: health check config on environment detail
 
 ### 5.5 Agent Deploy Commands
 
-- [ ] Define `deploy` command type in agent command system
-- [ ] Deploy command payload: artifact URL, hash, config, processes, pre/post activate hooks
-- [ ] Agent contract test: deploy command request/response shape
-- [ ] Define `rollback` command type
-- [ ] Agent contract test: rollback command
+- [x] Define `deploy` command type in agent command system
+- [x] Deploy command payload: artifact URL, hash, config, processes, pre/post activate hooks
+- [x] Agent contract test: deploy command request/response shape
+- [x] Define `rollback` command type
+- [x] Agent contract test: rollback command
 
 ### 5.6 Remote Commands (Commands Tab)
 
-- [ ] Migration: `create_remote_commands_table` (ulid PK, environment_id FK, server_id FK nullable, command text, status varchar, output text nullable, exit_code int nullable, started_at, finished_at, created_at)
-- [ ] Model: `app/Modules/Deployment/Models/RemoteCommand.php`
-- [ ] Enum: `RemoteCommandStatus` (pending, running, succeeded, failed, timed_out)
-- [ ] Action: `ExecuteRemoteCommand` (dispatch command to environment's cluster nodes via agent command system, collect output)
-- [ ] Predefined command templates: run migrations, clear cache, restart workers, artisan tinker, custom command
-- [ ] Controller: `RemoteCommandController` (store — execute command, index — command history, show — command output)
-- [ ] FormRequest: `ExecuteRemoteCommandRequest` (validate command, sanitize input)
-- [ ] Event: `RemoteCommandExecuted` (audit logged)
-- [ ] Tests: command dispatch, output collection, timeout handling
-- [ ] UI: Commands tab on environment detail — command history list, execute command form with template picker, live output display
-- [ ] Security: audit log every command execution, restrict to safe commands by default with opt-in for arbitrary shell
+- [x] Migration: `create_remote_commands_table` (ulid PK, environment_id FK, server_id FK nullable, command text, status varchar, output text nullable, exit_code int nullable, started_at, finished_at, created_at)
+- [x] Model: `app/Modules/Deployment/Models/RemoteCommand.php`
+- [x] Enum: `RemoteCommandStatus` (pending, running, succeeded, failed, timed_out)
+- [x] Action: `ExecuteRemoteCommand` (dispatch command to environment's cluster nodes via agent command system, collect output)
+- [x] Predefined command templates: run migrations, clear cache, restart workers, artisan tinker, custom command
+- [x] Controller: `RemoteCommandController` (store — execute command, index — command history, show — command output)
+- [x] FormRequest: `ExecuteRemoteCommandRequest` (validate command, sanitize input)
+- [x] Event: `RemoteCommandExecuted` (audit logged)
+- [x] Tests: command dispatch, output collection, timeout handling
+- [x] UI: Commands tab on environment detail — command history list, execute command form with template picker, live output display
+- [x] Security: audit log every command execution, restrict to safe commands by default with opt-in for arbitrary shell
 
 ### 5.7 Migration: add active_release_id to environments
 
-- [ ] Migration: `add_active_release_to_environments_table`
-- [ ] Update Environment model relationship
+- [x] Migration: `add_active_release_to_environments_table`
+- [x] Update Environment model relationship
 
 ### 5.8 Phase 5 Completion
 
-- [ ] Integration test: full deployment workflow (create release → deploy → health check → activate)
-- [ ] Integration test: rollback workflow (deploy → fail → rollback)
-- [ ] All tests passing, pint passing
-- [ ] Update CLAUDE.md + this roadmap
+- [x] Integration test: full deployment workflow (create release → deploy → health check → activate)
+- [x] Integration test: rollback workflow (deploy → fail → rollback)
+- [x] All tests passing, pint passing
+- [x] Update CLAUDE.md + this roadmap
+
+**Completed:** 2026-03-30
+**Deliverables:** 9 migrations, 7 models, 21 actions, 21 tests, 17 API endpoints
 
 ---
 

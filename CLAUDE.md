@@ -434,7 +434,7 @@ Fix style: `./vendor/bin/pint`
 | 2     | Providers, servers, clusters, SSH bootstrap, agent API                                   | **Done** |
 | 3     | Git connections, applications, environments, secrets, webhooks                           | **Done** |
 | 4     | Pipelines, pipeline runs/jobs, runners, artifacts, log streaming                         | **Done** |
-| 5     | Releases, deployments, rolling deploy, health checks, rollback                           | Pending  |
+| 5     | Releases, deployments, rolling deploy, health checks, rollback                           | **Done** |
 | 6     | Domains, certificates, Caddy config, backups, dashboard polish                           | Pending  |
 | 7     | Server metrics, alert rules, alerts, monitoring dashboard                                | Pending  |
 | 8     | Structured log storage, full-text search, CloudWatch-style log viewer, real-time tailing | Pending  |

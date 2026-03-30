@@ -32,6 +32,7 @@ import {
 import type {
     Application,
     Cluster,
+    Deployment,
     Environment,
     GitConnection,
     Pipeline,
@@ -47,6 +48,7 @@ type Props = {
     project: Project;
     gitConnections: GitConnection[];
     clusters: Cluster[];
+    deployments: Deployment[];
 };
 
 type PipelineFormState = {
@@ -102,16 +104,21 @@ function statusVariant(
     switch (status) {
         case 'succeeded':
         case 'ready':
+        case 'active':
             return 'default';
         case 'running':
         case 'queued':
         case 'assigned':
         case 'pending':
         case 'building':
+        case 'preparing':
+        case 'deploying':
+        case 'verifying':
             return 'secondary';
         case 'failed':
         case 'cancelled':
         case 'timed_out':
+        case 'rolled_back':
             return 'destructive';
         default:
             return 'outline';
@@ -123,6 +130,7 @@ export default function ApplicationShow({
     project,
     gitConnections,
     clusters,
+    deployments,
 }: Props) {
     const [showDelete, setShowDelete] = useState(false);
     const [showPipelineDialog, setShowPipelineDialog] = useState(false);
@@ -631,6 +639,100 @@ export default function ApplicationShow({
                                         </Button>
                                     </div>
                                 </form>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between gap-4">
+                                <div>
+                                    <CardTitle>Deployments</CardTitle>
+                                    <CardDescription>
+                                        Recent release activity across every
+                                        environment.
+                                    </CardDescription>
+                                </div>
+                                <Badge variant="secondary">
+                                    {deployments.length}
+                                </Badge>
+                            </CardHeader>
+                            <CardContent>
+                                {deployments.length ? (
+                                    <div className="rounded-md border">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b bg-muted/50">
+                                                    <th className="px-4 py-2 text-left font-medium">
+                                                        Environment
+                                                    </th>
+                                                    <th className="px-4 py-2 text-left font-medium">
+                                                        Release
+                                                    </th>
+                                                    <th className="px-4 py-2 text-left font-medium">
+                                                        Status
+                                                    </th>
+                                                    <th className="px-4 py-2 text-left font-medium">
+                                                        Progress
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {deployments.map(
+                                                    (deployment) => (
+                                                        <tr
+                                                            key={deployment.id}
+                                                            className="border-b last:border-0"
+                                                        >
+                                                            <td className="px-4 py-2">
+                                                                {deployment
+                                                                    .environment
+                                                                    ?.name ??
+                                                                    '-'}
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                <Link
+                                                                    href={`/deployments/${deployment.id}`}
+                                                                    className="font-medium text-primary hover:underline"
+                                                                >
+                                                                    {deployment.release
+                                                                        ? `v${deployment.release.version}`
+                                                                        : deployment.id}
+                                                                </Link>
+                                                            </td>
+                                                            <td className="px-4 py-2">
+                                                                <Badge
+                                                                    variant={statusVariant(
+                                                                        deployment.status,
+                                                                    )}
+                                                                >
+                                                                    {
+                                                                        deployment.status
+                                                                    }
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="px-4 py-2 text-muted-foreground">
+                                                                {
+                                                                    deployment.completed_nodes
+                                                                }
+                                                                /
+                                                                {
+                                                                    deployment.total_nodes
+                                                                }{' '}
+                                                                complete
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                                        No deployments yet. Ship a ready
+                                        artifact from one of this application's
+                                        environments to start tracking release
+                                        history here.
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
